@@ -1,0 +1,2 @@
+-- No seed data for MVP 1A.
+-- The initial schema is intentionally structure-only.
