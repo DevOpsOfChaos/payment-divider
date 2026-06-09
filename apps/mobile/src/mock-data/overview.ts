@@ -1,4 +1,5 @@
 import type { BalanceTone } from "./groups";
+import { getPersonalBalanceSummary } from "./balance-derived";
 
 export interface OverviewBalanceMock {
   heading: string;
@@ -33,12 +34,14 @@ export interface OverviewAttentionMock {
   amountHint?: string;
 }
 
+const personalBalanceSummary = getPersonalBalanceSummary();
+
 export const OVERVIEW_BALANCE_MOCK: OverviewBalanceMock = {
   heading: "Gesamtsaldo",
-  amountLabel: "Du bekommst 84,50 €",
+  amountLabel: personalBalanceSummary.label,
   helperText: "Du bekommst mehr als du schuldest.",
-  tone: "positive",
-  breakdown: "Forderungen 96,50 € · Schulden 12,00 €",
+  tone: personalBalanceSummary.tone,
+  breakdown: personalBalanceSummary.breakdown,
 };
 
 export const RECEIVABLES_MOCK: OverviewBalanceRowMock[] = [

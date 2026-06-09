@@ -1,3 +1,6 @@
+import { getActivityBalanceSummary, getGroupBalanceSummary } from "./balance-derived";
+import { MOCK_CONTEXT_IDS, MOCK_GROUP_IDS } from "./ledger";
+
 export type BalanceTone = "positive" | "negative" | "settled";
 
 export interface GroupActivityMock {
@@ -16,27 +19,41 @@ export interface GroupCardMock {
   activities: GroupActivityMock[];
 }
 
+const friendsBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
+const friendsGeneralBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.friendsGeneral,
+);
+const amsterdamBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.amsterdam,
+);
+const festivalBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.festival,
+);
+
 export const GROUPS_MOCK: GroupCardMock[] = [
   {
     name: "Freundeskreis",
     contextLabel: "Dauerhafte Gruppe",
     memberCount: 4,
-    balanceTone: "positive",
-    balanceSummary: "Du bekommst 42,00 €",
+    balanceTone: friendsBalance.tone,
+    balanceSummary: friendsBalance.label,
     helperText: "Saldo aus mehreren Aktivitäten.",
     activities: [
       {
         name: "Allgemein",
-        summary: "Du schuldest 8,00 €",
+        summary: friendsGeneralBalance.label,
       },
       {
         name: "Amsterdam 2026",
-        summary: "Du bekommst 50,00 €",
+        summary: amsterdamBalance.label,
         pauseHint: "Max pausiert bis 07.08.",
       },
       {
         name: "Festival 2026",
-        summary: "Alles ausgeglichen",
+        summary: festivalBalance.label,
       },
     ],
   },
