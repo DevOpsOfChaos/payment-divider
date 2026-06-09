@@ -4,7 +4,7 @@ Status: placeholder index for upcoming screen specs.
 
 ## MVP 1A screens
 
-1. Personal overview
+1. [Personal overview](./personal-overview.md)
 2. Groups list
 3. Group detail
 4. Activity detail
