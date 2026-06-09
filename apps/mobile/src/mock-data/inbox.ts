@@ -16,28 +16,28 @@ export interface InboxScreenMock {
 export const INBOX_SCREEN_MOCK: InboxScreenMock = {
   title: "Inbox",
   subtitle: "Action items only, not raw history.",
-  summary: "Offene Aktionen bleiben getrennt von der Timeline und fuehren keine Zahlung im App-Flow aus.",
+  summary: "Offene Aktionen bleiben getrennt von der Timeline und führen keine Zahlung im App-Flow aus.",
   items: [
     {
-      title: "Zahlung bestaetigen",
-      detail: "Anna hat 34,00 EUR als extern erledigt markiert.",
+      title: "Zahlung bestätigen",
+      detail: "Anna hat 34,00 € als extern erledigt markiert.",
       source: "Portugal Reise",
-      status: "Bestaetigung offen",
-      actionLabel: "Bestaetigung pruefen",
+      status: "Bestätigung offen",
+      actionLabel: "Bestätigung prüfen",
     },
     {
       title: "Einladung offen",
-      detail: "Lukas laedt dich in Festival 2026 ein.",
+      detail: "Lukas lädt dich in Festival 2026 ein.",
       source: "Freundeskreis",
       status: "Antwort ausstehend",
       actionLabel: "Einladung ansehen",
     },
     {
-      title: "Spaeter: Sync-Konflikt pruefen",
+      title: "Später: Sync-Konflikt prüfen",
       detail: "Offline-Ausgabe wartet auf Abgleich.",
       source: "WG Allgemein",
-      status: "Spaeterer Offline-Scope",
-      actionLabel: "Details spaeter",
+      status: "Späterer Offline-Scope",
+      actionLabel: "Details später",
     },
   ],
 };

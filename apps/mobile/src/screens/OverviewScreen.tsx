@@ -42,9 +42,9 @@ function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRowMo
 export function OverviewScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>Overview</Text>
+      <Text style={styles.screenTitle}>Übersicht</Text>
       <Text style={styles.screenPurpose}>
-        Persoenliche Uebersicht ueber offene Salden, Aktionen und relevante Gruppen
+        Persönliche Übersicht über offene Salden, Aktionen und relevante Gruppen
         ohne Zahlungsfunktion im App-Flow.
       </Text>
 
@@ -90,7 +90,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Letzte Aktivitaet</Text>
+        <Text style={styles.sectionTitle}>Letzte Aktivität</Text>
         <View style={styles.sectionList}>
           {RECENT_ACTIVITY_MOCK.map((item) => (
             <View key={`${item.actor}-${item.event}-${item.dateLabel}`} style={styles.infoRow}>
