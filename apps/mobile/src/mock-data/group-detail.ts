@@ -1,4 +1,6 @@
 import type { BalanceTone } from "./groups";
+import { getActivityBalanceSummary, getGroupBalanceSummary } from "./balance-derived";
+import { MOCK_CONTEXT_IDS, MOCK_GROUP_IDS } from "./ledger";
 
 export interface GroupDetailActivityMock {
   name: string;
@@ -44,33 +46,47 @@ export interface GroupDetailScreenMock {
   quickActions: GroupQuickActionMock[];
 }
 
+const groupBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
+const generalBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.friendsGeneral,
+);
+const amsterdamBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.amsterdam,
+);
+const festivalBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.festival,
+);
+
 export const GROUP_DETAIL_SCREEN_MOCK: GroupDetailScreenMock = {
   title: "Freundeskreis",
   subtitle: "Dauerhafte Gruppe · 4 Mitglieder",
   balanceTitle: "Gruppensaldo",
-  balanceSummary: "Du bekommst 42,00 €",
-  balanceTone: "positive",
+  balanceSummary: groupBalance.label,
+  balanceTone: groupBalance.tone,
   balanceHint: "Aktivitätssalden rollen in diesen Gruppensaldo hoch.",
   activitiesTitle: "Aktivitäten",
   activities: [
     {
       name: "Allgemein",
       detail: "Standardaktivität",
-      balanceTone: "negative",
-      balanceSummary: "Du schuldest 8,00 €",
+      balanceTone: generalBalance.tone,
+      balanceSummary: generalBalance.label,
     },
     {
       name: "Amsterdam 2026",
       detail: "Reiseaktivität · 01.08.-07.08.",
-      balanceTone: "positive",
-      balanceSummary: "Du bekommst 50,00 €",
+      balanceTone: amsterdamBalance.tone,
+      balanceSummary: amsterdamBalance.label,
       pauseHint: "Max pausiert bis 07.08.",
     },
     {
       name: "Festival 2026",
       detail: "Wochenendkontext",
-      balanceTone: "settled",
-      balanceSummary: "Alles ausgeglichen",
+      balanceTone: festivalBalance.tone,
+      balanceSummary: festivalBalance.label,
     },
   ],
   membersTitle: "Mitglieder",

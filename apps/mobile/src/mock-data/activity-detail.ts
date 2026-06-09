@@ -1,4 +1,6 @@
 import type { BalanceTone } from "./groups";
+import { getActivityBalanceSummary, formatMoney } from "./balance-derived";
+import { MOCK_CONTEXT_IDS, MOCK_EXPENSES, MOCK_GROUP_IDS } from "./ledger";
 
 export interface ActivityParticipantMock {
   name: string;
@@ -52,13 +54,21 @@ export interface ActivityDetailScreenMock {
   quickActions: ActivityQuickActionMock[];
 }
 
+const amsterdamBalance = getActivityBalanceSummary(
+  MOCK_GROUP_IDS.friends,
+  MOCK_CONTEXT_IDS.amsterdam,
+);
+const amsterdamExpenses = MOCK_EXPENSES.filter(
+  (expense) => expense.contextId === MOCK_CONTEXT_IDS.amsterdam,
+);
+
 export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
   title: "Amsterdam 2026",
   subtitle: "Freundeskreis · Reiseaktivität",
   periodLabel: "01.08.-07.08. · Teilnehmerstatus gilt für diese Aktivität.",
   balanceTitle: "Aktivitätssaldo",
-  balanceSummary: "Du bekommst 50,00 €",
-  balanceTone: "positive",
+  balanceSummary: amsterdamBalance.label,
+  balanceTone: amsterdamBalance.tone,
   balanceHint: "Nur Salden aus dieser Aktivität, nicht aus der restlichen Gruppe.",
   activeParticipantsTitle: "Aktive Teilnehmer",
   activeParticipantsHint:
@@ -75,10 +85,10 @@ export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
   ],
   expensesTitle: "Ausgaben",
   expensesHint: "Hier erscheinen nur Ausgaben aus Amsterdam 2026.",
-  expenses: [
-    { label: "Abendessen", amount: "42,80 €" },
-    { label: "Tickets", amount: "64,00 €" },
-  ],
+  expenses: amsterdamExpenses.map((expense) => ({
+    label: expense.title ?? "Ausgabe",
+    amount: formatMoney(expense.amount),
+  })),
   paymentActionsTitle: "Zahlungsaktionen",
   paymentActionsHint:
     "Ledger-only Vorschau: externe Zahlung wird nur markiert oder bestätigt.",
