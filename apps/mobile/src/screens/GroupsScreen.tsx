@@ -18,7 +18,7 @@ function getBalanceStyle(tone: BalanceTone) {
 export function GroupsScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>Groups</Text>
+      <Text style={styles.screenTitle}>Gruppen</Text>
       <Text style={styles.screenPurpose}>
         Dauerhafte Gruppen bleiben der soziale Raum. Aktivitäten darunter
         zeigen konkrete Ledger-Kontexte, ohne Zahlungsausführung im App-Flow.

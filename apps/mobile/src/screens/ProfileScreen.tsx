@@ -54,7 +54,7 @@ export function ProfileScreen() {
       <Text style={styles.screenPurpose}>{PROFILE_SCREEN_MOCK.subtitle}</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Identitaet</Text>
+        <Text style={styles.sectionTitle}>Identität</Text>
         <View style={styles.sectionCard}>
           {PROFILE_SCREEN_MOCK.identity.map((entry) => (
             <IdentityRow key={entry.label} {...entry} />
@@ -72,7 +72,7 @@ export function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Zahlungsdaten spaeter verwalten</Text>
+        <Text style={styles.sectionTitle}>Zahlungsdaten später verwalten</Text>
         <View style={styles.sectionCard}>
           {PROFILE_SCREEN_MOCK.paymentControls.map((entry) => (
             <PaymentControlRow key={entry.label} {...entry} />

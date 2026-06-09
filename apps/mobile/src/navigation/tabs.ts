@@ -24,11 +24,11 @@ export interface TabDefinition {
 export const TABS: TabDefinition[] = [
   {
     id: "overview",
-    label: "Overview",
+    label: "Übersicht",
     component: OverviewScreen,
     screen: {
-      title: "Overview",
-      purpose: "Personal ledger summary across all groups.",
+      title: "Übersicht",
+      purpose: "Persönliche Ledger-Übersicht über alle Gruppen.",
       placeholderLines: [
         "Du bekommst: 84,50 €",
         "Du schuldest: 12,00 €",
@@ -38,22 +38,22 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "groups",
-    label: "Groups",
+    label: "Gruppen",
     component: GroupsScreen,
     screen: {
-      title: "Groups",
-      purpose: "Long-lived social spaces with activities inside them.",
+      title: "Gruppen",
+      purpose: "Dauerhafte soziale Räume mit Aktivitäten darunter.",
       placeholderLines: ["Freundeskreis", "WG Berlin", "Portugal Reise Crew"],
     },
   },
   {
     id: "record",
-    label: "Record",
+    label: "Erfassen",
     component: RecordScreen,
     screen: {
-      title: "Record",
+      title: "Erfassen",
       purpose:
-        "Fast expense entry: amount, group/activity, payer, participants, save.",
+        "Schnelle Ausgabenerfassung: Betrag, Gruppe/Aktivität, Zahler, Teilnehmer, speichern.",
       placeholderLines: [
         "Betrag",
         "Gruppe / Aktivität",
@@ -68,7 +68,7 @@ export const TABS: TabDefinition[] = [
     component: InboxScreen,
     screen: {
       title: "Inbox",
-      purpose: "Action items only, not raw history.",
+      purpose: "Nur Aktionen, keine rohe Historie.",
       placeholderLines: [
         "Zahlung bestätigen",
         "Einladung annehmen",
@@ -78,11 +78,11 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "profile",
-    label: "Profile",
+    label: "Profil",
     component: ProfileScreen,
     screen: {
-      title: "Profile",
-      purpose: "Personal settings, visibility, and later payment-method controls.",
+      title: "Profil",
+      purpose: "Persönliche Einstellungen, Sichtbarkeit und spätere Zahlungsdaten-Kontrollen.",
       placeholderLines: [
         "Anzeigename",
         "Sichtbarkeitsprofile",

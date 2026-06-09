@@ -54,7 +54,7 @@ export const GROUPS_MOCK: GroupCardMock[] = [
       },
       {
         name: "Haushalt Juni",
-        summary: "Details spater",
+        summary: "Details später",
         pauseHint: "Anna pausiert bis 30.06.",
       },
     ],
@@ -73,7 +73,7 @@ export const GROUPS_MOCK: GroupCardMock[] = [
       },
       {
         name: "Mietwagen",
-        summary: "Bestaetigung offen",
+        summary: "Bestätigung offen",
       },
     ],
   },

@@ -35,21 +35,21 @@ export const RECORD_SCREEN_MOCK: RecordScreenMock = {
   title: "Ausgabe erfassen",
   subtitle: "Save fast first, enrich later.",
   amountLabel: "Betrag",
-  amountValue: "42,80 EUR",
-  contextLabel: "Gruppe / Aktivitaet",
+  amountValue: "42,80 €",
+  contextLabel: "Gruppe / Aktivität",
   contextValue: "Portugal Reise · Abendessen",
   payerLabel: "Bezahlt von",
   payerValue: "Manu",
   participantsTitle: "Teilnehmer",
   participantsHint:
-    "Alle aktiven auswaehlen nutzt aktive Teilnehmer fuer Datum + Aktivitaet.",
+    "Alle aktiven auswählen nutzt aktive Teilnehmer für Datum + Aktivität.",
   activeParticipants: [
     { name: "Manu", selected: true },
     { name: "Anna", selected: true },
     { name: "Lukas", selected: true },
   ],
   pausedTitle: "Pausiert an diesem Datum",
-  pausedHint: "Pausierte Teilnehmer bleiben sichtbar und koennen manuell einbezogen werden.",
+  pausedHint: "Pausierte Teilnehmer bleiben sichtbar und können manuell einbezogen werden.",
   pausedParticipants: [
     {
       name: "Max",
@@ -59,15 +59,15 @@ export const RECORD_SCREEN_MOCK: RecordScreenMock = {
   ],
   infoTitle: "Hinweise",
   infoLines: [
-    "Aktive Teilnehmer sind standardmaessig vorausgewaehlt.",
-    "Pausierte Teilnehmer zaehlen nicht zu Alle aktiven auswaehlen.",
-    "Details wie Beleg, Kategorie oder Notiz kommen spaeter.",
+    "Aktive Teilnehmer sind standardmäßig vorausgewählt.",
+    "Pausierte Teilnehmer zählen nicht zu Alle aktiven auswählen.",
+    "Details wie Beleg, Kategorie oder Notiz kommen später.",
   ],
   validationTitle: "Validierung",
   validationHints: [
     {
       title: "Betrag",
-      detail: "Betrag muss groesser als 0 sein.",
+      detail: "Betrag muss größer als 0 sein.",
     },
     {
       title: "Zahler",

@@ -31,9 +31,9 @@ export interface ProfileScreenMock {
 }
 
 export const PROFILE_SCREEN_MOCK: ProfileScreenMock = {
-  title: "Profile",
+  title: "Profil",
   subtitle:
-    "Personal settings, visibility, and later payment-method controls.",
+    "Persönliche Einstellungen, Sichtbarkeit und spätere Zahlungsdaten-Kontrollen.",
   identity: [
     {
       label: "Anzeigename",
@@ -78,7 +78,7 @@ export const PROFILE_SCREEN_MOCK: ProfileScreenMock = {
     },
     {
       label: "Weitere Anbieter",
-      detail: "spaeter",
+      detail: "später",
     },
   ],
   privacyNotes: [
@@ -92,10 +92,10 @@ export const PROFILE_SCREEN_MOCK: ProfileScreenMock = {
     },
     {
       title: "Sichtbarkeit",
-      detail: "laesst sich pro Gruppe ueber ein Profil steuern.",
+      detail: "lässt sich pro Gruppe über ein Profil steuern.",
     },
   ],
   groupHintTitle: "Gruppenhinweis",
   groupHintDetail:
-    "Jede Gruppe waehlt ein Sichtbarkeitsprofil. Spaetere Zahlungsdaten-Kontrolle bleibt pro Gruppe oder Aktivitaet getrennt.",
+    "Jede Gruppe wählt ein Sichtbarkeitsprofil. Spätere Zahlungsdaten-Kontrolle bleibt pro Gruppe oder Aktivität getrennt.",
 };

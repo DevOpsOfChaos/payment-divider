@@ -35,27 +35,27 @@ export interface OverviewAttentionMock {
 
 export const OVERVIEW_BALANCE_MOCK: OverviewBalanceMock = {
   heading: "Gesamtsaldo",
-  amountLabel: "Du bekommst 84,50 EUR",
+  amountLabel: "Du bekommst 84,50 €",
   helperText: "Du bekommst mehr als du schuldest.",
   tone: "positive",
-  breakdown: "Forderungen 96,50 EUR · Schulden 12,00 EUR",
+  breakdown: "Forderungen 96,50 € · Schulden 12,00 €",
 };
 
 export const RECEIVABLES_MOCK: OverviewBalanceRowMock[] = [
   {
     person: "Anna",
-    amount: "34,00 EUR",
+    amount: "34,00 €",
     source: "Portugal Reise",
-    statusHint: "Zahlung bestaetigen",
+    statusHint: "Zahlung bestätigen",
   },
   {
     person: "Max",
-    amount: "20,00 EUR",
+    amount: "20,00 €",
     source: "WG Allgemein",
   },
   {
     person: "Leo",
-    amount: "18,50 EUR",
+    amount: "18,50 €",
     source: "Freundeskreis Allgemein",
   },
 ];
@@ -63,7 +63,7 @@ export const RECEIVABLES_MOCK: OverviewBalanceRowMock[] = [
 export const DEBTS_MOCK: OverviewBalanceRowMock[] = [
   {
     person: "Sarah",
-    amount: "12,00 EUR",
+    amount: "12,00 €",
     source: "Amsterdam 2026",
     statusHint: "Extern als bezahlt markiert",
   },
@@ -71,19 +71,19 @@ export const DEBTS_MOCK: OverviewBalanceRowMock[] = [
 
 export const OPEN_ACTIONS_MOCK: OverviewActionMock[] = [
   {
-    label: "2 Zahlungen bestaetigen",
+    label: "2 Zahlungen bestätigen",
     detail: "Portugal Reise und WG Allgemein",
   },
   {
     label: "1 Einladung offen",
-    detail: "Freundeskreis beitreten oder spaeter",
+    detail: "Freundeskreis beitreten oder später",
   },
 ];
 
 export const RECENT_ACTIVITY_MOCK: OverviewActivityMock[] = [
   {
     actor: "Anna",
-    event: "hat Abendessen hinzugefuegt",
+    event: "hat Abendessen hinzugefügt",
     source: "Portugal Reise",
     dateLabel: "Heute",
   },
@@ -105,11 +105,11 @@ export const GROUP_ATTENTION_MOCK: OverviewAttentionMock[] = [
   {
     group: "Portugal Reise",
     reason: "Offene Forderungen",
-    amountHint: "54,00 EUR offen",
+    amountHint: "54,00 € offen",
   },
   {
     group: "WG Allgemein",
-    reason: "Bestaetigung ausstehend",
+    reason: "Bestätigung ausstehend",
     amountHint: "1 Aktion",
   },
   {
