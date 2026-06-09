@@ -7,10 +7,11 @@ import { TABS, type TabId } from "./tabs";
 export function MainTabs() {
   const [activeTabId, setActiveTabId] = useState<TabId>("overview");
   const activeTab = TABS.find((tab) => tab.id === activeTabId) ?? TABS[0];
+  const ActiveScreen = activeTab.component;
 
   return (
     <>
-      <PlaceholderScreen {...activeTab.screen} />
+      {ActiveScreen ? <ActiveScreen /> : <PlaceholderScreen {...activeTab.screen} />}
 
       <View style={styles.tabBar}>
         {TABS.map((tab) => {

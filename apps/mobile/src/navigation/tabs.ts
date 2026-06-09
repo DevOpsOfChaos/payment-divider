@@ -1,3 +1,7 @@
+import type { ComponentType } from "react";
+
+import { GroupsScreen } from "../screens/GroupsScreen";
+
 export type TabId = "overview" | "groups" | "record" | "inbox" | "profile";
 
 export interface ScreenContent {
@@ -10,6 +14,7 @@ export interface TabDefinition {
   id: TabId;
   label: string;
   screen: ScreenContent;
+  component?: ComponentType;
 }
 
 export const TABS: TabDefinition[] = [
@@ -29,6 +34,7 @@ export const TABS: TabDefinition[] = [
   {
     id: "groups",
     label: "Groups",
+    component: GroupsScreen,
     screen: {
       title: "Groups",
       purpose: "Long-lived social spaces with activities inside them.",
