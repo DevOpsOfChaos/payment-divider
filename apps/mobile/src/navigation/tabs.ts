@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import { GroupsScreen } from "../screens/GroupsScreen";
+import { OverviewScreen } from "../screens/OverviewScreen";
 
 export type TabId = "overview" | "groups" | "record" | "inbox" | "profile";
 
@@ -21,6 +22,7 @@ export const TABS: TabDefinition[] = [
   {
     id: "overview",
     label: "Overview",
+    component: OverviewScreen,
     screen: {
       title: "Overview",
       purpose: "Personal ledger summary across all groups.",
