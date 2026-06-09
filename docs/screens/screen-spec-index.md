@@ -6,8 +6,8 @@ Status: placeholder index for upcoming screen specs.
 
 1. [Personal overview](./personal-overview.md)
 2. Groups list
-3. Group detail
-4. Activity detail
+3. [Group detail](./group-detail.md)
+4. [Activity detail](./activity-detail.md)
 5. [Expense entry](./expense-entry.md)
 6. Participant availability / pause
 7. Mark external payment
