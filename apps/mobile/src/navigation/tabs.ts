@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import { GroupsScreen } from "../screens/GroupsScreen";
+import { InboxScreen } from "../screens/InboxScreen";
 import { OverviewScreen } from "../screens/OverviewScreen";
 import { RecordScreen } from "../screens/RecordScreen";
 
@@ -63,6 +64,7 @@ export const TABS: TabDefinition[] = [
   {
     id: "inbox",
     label: "Inbox",
+    component: InboxScreen,
     screen: {
       title: "Inbox",
       purpose: "Action items only, not raw history.",
