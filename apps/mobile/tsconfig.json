@@ -1,0 +1,7 @@
+{
+  "extends": "../../packages/config/tsconfig.expo.json",
+  "include": [
+    "App.tsx",
+    "index.ts"
+  ]
+}

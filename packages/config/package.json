@@ -1,0 +1,9 @@
+{
+  "name": "@payment-divider/config",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "tsconfig.expo.json",
+    "tsconfig.package.json"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "payment-divider",
+  "private": true,
+  "packageManager": "pnpm@10.22.0",
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "typecheck": "corepack pnpm -r --if-present typecheck"
+  }
+}
