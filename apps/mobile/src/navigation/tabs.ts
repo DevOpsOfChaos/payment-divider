@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 
 import { GroupsScreen } from "../screens/GroupsScreen";
 import { OverviewScreen } from "../screens/OverviewScreen";
+import { RecordScreen } from "../screens/RecordScreen";
 
 export type TabId = "overview" | "groups" | "record" | "inbox" | "profile";
 
@@ -46,6 +47,7 @@ export const TABS: TabDefinition[] = [
   {
     id: "record",
     label: "Record",
+    component: RecordScreen,
     screen: {
       title: "Record",
       purpose:
