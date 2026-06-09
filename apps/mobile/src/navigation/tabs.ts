@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { GroupsScreen } from "../screens/GroupsScreen";
 import { InboxScreen } from "../screens/InboxScreen";
 import { OverviewScreen } from "../screens/OverviewScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { RecordScreen } from "../screens/RecordScreen";
 
 export type TabId = "overview" | "groups" | "record" | "inbox" | "profile";
@@ -78,6 +79,7 @@ export const TABS: TabDefinition[] = [
   {
     id: "profile",
     label: "Profile",
+    component: ProfileScreen,
     screen: {
       title: "Profile",
       purpose: "Personal settings, visibility, and later payment-method controls.",
