@@ -1,7 +1,10 @@
 # Shared Subscriptions and Recurring Costs v0.1
 
-Status: product specification, decided 2026-06-11. Specification only — no
-implementation yet; follow-up issues derive from this document.
+Status: product specification, decided 2026-06-11. Periods, participant/share
+history and counterparty integration refined per issue #92 (same day).
+Core types and period groundwork live in `packages/core/src/cost-plans.ts`;
+everything else is specification only — follow-up issues derive from this
+document.
 
 ## Problem
 
@@ -20,54 +23,104 @@ and claims.
 
 ## Core concept: CostPlan
 
-A `CostPlan` is a rule that generates expected periods, not transactions:
+A `CostPlan` is a rule that generates expected periods, not transactions.
+Types in `packages/core/src/cost-plans.ts`:
 
 ```text
 CostPlan
   id, name ("Streaming Familienabo")
   ownerUserId                    person who pays the provider upfront
-  amount (minor units), currency
-  interval                       monthly | yearly | custom_days(n)
-  anchorDate                     first period start
+  amount (minor units), currency current amount; periods snapshot it
+  intervalKind                   monthly | yearly | custom_days (+ intervalDays)
+  anchorDate                     first period start; all boundaries derive
+                                 deterministically from anchorDate + periodIndex
   prepaid                        false: per-period | true: paid ahead (e.g. yearly)
   groupId?, contextId?           optional link, NOT treated as a trip group
   archivedAt?
 
-CostPlanParticipant
-  id, costPlanId, participant (app user | invited | free-text, like claims)
-  shareType                      equal | fixed | fraction
-  shareValue?
-  joinedAtPeriod, leftAtPeriod?  participation can change over time
+CostPlanParticipant              one participation PHASE of a counterparty (#88)
+  id, costPlanId, counterpartyId reusable person record; app_user, invited_person
+                                 or external_person — same privacy rules as claims
+  shareType                      equal | fixed (fraction: phase 2)
+  shareValue?                    fixed amount in minor units
+  joinedAtPeriodIndex
+  leftAtPeriodIndex?             exclusive — no longer active in this period
 
 CostPlanPeriod                   materialized per interval occurrence
-  id, costPlanId, periodStart, periodEnd
+  id, costPlanId, periodIndex, periodStart, periodEnd (exclusive)
   amount (minor units)           snapshot — amount changes affect future periods only
   status                         expected | partially_settled | settled | skipped
 
 CostPlanSettlement               ledger-only, mirrors ClaimPayment semantics
-  id, costPlanPeriodId, fromUserId/participantRef, amount, settledDate
+  id, costPlanPeriodId, counterpartyId, amount, settledDate
   confirmationStatus             recorded | pending_confirmation | confirmed | rejected
 
-CostPlanEvent                    history
-  amount_changed | participant_joined | participant_left | share_changed |
-  settlement_recorded | settlement_confirmed | period_skipped | plan_archived
+CostPlanEvent                    history (who changed what, when)
+  plan_created | amount_changed | participant_joined | participant_left |
+  share_changed | period_generated | period_skipped | settlement_recorded |
+  settlement_confirmed | settlement_rejected | plan_archived
 ```
+
+### Counterparties, and the owner's own share
+
+Participants are counterparty references (#88), never raw names: external
+persons stay private to the owner, linked app users can later see the plans
+and periods they are part of (claims sharing rules apply). The owner is not a
+participant record — their own share is the implicit remainder
+(`period.amount − sum(participant shares)`; for equal splits the owner counts
+as one head). This avoids self-counterparties and guarantees shares never
+exceed the period amount.
+
+### History as records, not mutation
+
+Participant and share changes never rewrite existing rows. A participant
+record is one phase: leaving sets `leftAtPeriodIndex` (exclusive); re-joining
+or changing a share/type closes the old record and starts a new one from the
+chosen period. Resolving any past period therefore reproduces exactly the
+participants and shares that were valid then. At most one active record per
+counterparty and period (`getActiveParticipants` enforces this).
 
 ### Why periods are materialized
 
 - Amount changes ("price went up in March") must not rewrite history: each
-  period snapshots the amount valid at generation time.
+  period snapshots the amount valid at generation time. The plan's `amount`
+  is only the template for future periods; changing it is an
+  `amount_changed` event.
 - Participant/share changes apply from a chosen period onward; old periods
   keep their original split.
-- Yearly prepayment: one period covering twelve months; participants settle
-  their share once or in parts against that period.
+- Yearly prepayment (`prepaid: true`, yearly interval): one period covering
+  twelve months; participants settle their share once or in parts against
+  that period. Insurance paid upfront works the same way.
+- Period boundaries are pure functions of the plan (`getPeriodRange`):
+  monthly/yearly clamp month-end anchors (Jan 31 → Feb 28) without drifting,
+  custom intervals step by exact day counts. Periods are generated on demand,
+  never by background jobs.
 
-## Aggregation
+### Open positions and settled history
 
-Open period shares feed the existing per-person summary (claims spec): one
-row per person combines open private claims, group balances, and open
-recurring-cost shares — each clearly labelled by source. Recurring costs do
-not enter group balance math even when linked to a group.
+Every non-skipped period produces one open position per active participant
+(their share minus confirmed settlements). A period becomes `settled` when
+all shares are settled, `skipped` when the owner marks it as not applicable
+(e.g. paused subscription). Settled and skipped periods stay visible as
+history with their original snapshot — they only stop producing open
+positions.
+
+## Aggregation: person balance overview (#89)
+
+Open period shares feed the person balance overview
+(`person-balance-overview-v0.1.md`): each open participant share becomes one
+gross `PersonBalancePosition` with the reserved `recurring_cost` source type
+("4,99 EUR Netflix-Anteil"), keyed by the same counterparty as claims and
+group balances. Gross positions stay visible, net is summary only, settled
+periods move to the history section — identical rules to the other sources.
+Recurring costs do not enter group balance math even when linked to a group.
+
+## Reminders (#90)
+
+Recurring costs may later generate periodic self-set reminders ("Anteil
+fällig am 1."), following `reminder-policy-v0.1.md` unchanged: optional,
+per-user, snoozable, disableable, neutral wording, no push, nothing sent on
+the other side's behalf. Reference only — no reminder implementation here.
 
 ## Boundary to Expense and Claim
 
@@ -104,8 +157,11 @@ no reminders sent on someone else's behalf; no public proof of debt.
 
 ## Follow-up issues (to be created when implementation starts)
 
-1. Core model + period/share calculations + tests.
+1. Core: share splitting per period (equal remainder distribution like
+   `splitExpenseEqually`), settlements, open-position derivation feeding the
+   `recurring_cost` person-balance source. (Types, period boundaries and
+   participation history already landed via #92.)
 2. Database schema + RLS (owner/participant visibility, settlement
    confirmation semantics, immutability triggers like claims).
 3. Mobile UI: plan list, plan detail with periods, settlement recording,
-   per-person summary integration.
+   person balance overview integration.
