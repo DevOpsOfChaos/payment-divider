@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  canTransitionClaimStatus,
   deriveClaimLifecycle,
   filterVisibleClaims,
   getClaimPaidAmount,
@@ -9,6 +10,7 @@ import {
   isClaimClosed,
   isLinkedClaim,
   summarizeClaimsByPerson,
+  transitionClaimStatus,
   type Claim,
   type ClaimPayment,
 } from "./claims";
@@ -320,4 +322,51 @@ test("duplicate detection flags same names and aliases, same owner only", () => 
   assert.ok(
     candidates.every((candidate) => candidate.counterparty.ownerUserId === "user-me"),
   );
+});
+
+test("dispute keeps the claim open and visible at the creator", () => {
+  const claim = makeClaim({
+    id: "c1",
+    counterpartyId: LINKED_ANNA.id,
+    sharedWithCounterparty: true,
+    status: "linked_open",
+  });
+
+  const disputed = transitionClaimStatus(claim, "disputed", NOW);
+
+  // Rejection never deletes or closes the claim: lifecycle is "disputed",
+  // not settled/archived, so it stays in the creator's open list.
+  assert.equal(disputed.status, "disputed");
+  assert.equal(deriveClaimLifecycle(disputed, [], COUNTERPARTIES), "disputed");
+  assert.equal(isClaimClosed(disputed, [], COUNTERPARTIES), false);
+});
+
+test("disputed claims cannot jump straight to settled", () => {
+  assert.equal(canTransitionClaimStatus("disputed", "settled"), false);
+  assert.equal(canTransitionClaimStatus("disputed", "creditor_confirmed"), false);
+  // Clarification path: reopen, take over, or archive by the creator.
+  assert.equal(canTransitionClaimStatus("disputed", "linked_open"), true);
+  assert.equal(canTransitionClaimStatus("disputed", "debtor_acknowledged"), true);
+  assert.equal(canTransitionClaimStatus("disputed", "archived"), true);
+});
+
+test("private claims cannot be disputed", () => {
+  assert.equal(canTransitionClaimStatus("private_open", "disputed"), false);
+  const claim = makeClaim({ id: "c1" });
+  assert.throws(() => transitionClaimStatus(claim, "disputed", NOW));
+});
+
+test("acknowledging is optional, disputing stays available after acknowledging", () => {
+  assert.equal(canTransitionClaimStatus("linked_open", "debtor_acknowledged"), true);
+  // No forced confirmation: payments can flow without acknowledgement.
+  assert.equal(canTransitionClaimStatus("linked_open", "partially_paid"), true);
+  assert.equal(canTransitionClaimStatus("debtor_acknowledged", "disputed"), true);
+});
+
+test("archived is terminal and transition sets archivedAt", () => {
+  const claim = makeClaim({ id: "c1" });
+  const archived = transitionClaimStatus(claim, "archived", NOW);
+  assert.equal(archived.archivedAt, NOW);
+  assert.equal(canTransitionClaimStatus("archived", "linked_open"), false);
+  assert.throws(() => transitionClaimStatus(archived, "private_open", NOW));
 });

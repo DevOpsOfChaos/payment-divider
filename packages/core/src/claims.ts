@@ -93,6 +93,49 @@ export interface ClaimEvent {
   createdAt: ISODateTimeString;
 }
 
+// Allowed status transitions (docs/product/claim-dispute-clarification-v0.1.md).
+// Key dispute rules: only claims visible to the counterparty can be disputed;
+// a dispute never deletes or invalidates the claim — it stays open at the
+// creator as "needs clarification" until clarified, taken over or archived;
+// a disputed claim can never jump straight to settled.
+const CLAIM_STATUS_TRANSITIONS: Record<ClaimStatus, readonly ClaimStatus[]> = {
+  draft: ["private_open", "linked_open", "archived"],
+  // Private claims have no counterparty view, so they cannot be disputed.
+  private_open: ["linked_open", "partially_paid", "marked_paid", "settled", "archived"],
+  linked_open: ["debtor_acknowledged", "disputed", "partially_paid", "marked_paid", "archived"],
+  debtor_acknowledged: ["disputed", "partially_paid", "marked_paid", "archived"],
+  // Clarification reopens the claim (back to linked_open) or the debtor takes
+  // it over after talking it through; only the creator may archive it.
+  disputed: ["linked_open", "debtor_acknowledged", "archived"],
+  partially_paid: ["disputed", "marked_paid", "creditor_confirmed", "settled", "archived"],
+  marked_paid: ["disputed", "creditor_confirmed", "archived"],
+  creditor_confirmed: ["settled", "archived"],
+  settled: ["archived"],
+  archived: [],
+};
+
+export function canTransitionClaimStatus(from: ClaimStatus, to: ClaimStatus): boolean {
+  return CLAIM_STATUS_TRANSITIONS[from].includes(to);
+}
+
+// Applies a validated status change. Throws on transitions the workflow
+// forbids, so stores/UI cannot silently skip the clarification path.
+export function transitionClaimStatus(
+  claim: Claim,
+  to: ClaimStatus,
+  at: ISODateTimeString,
+): Claim {
+  if (!canTransitionClaimStatus(claim.status, to)) {
+    throw new Error(`Claim ${claim.id} cannot move from ${claim.status} to ${to}.`);
+  }
+  return {
+    ...claim,
+    status: to,
+    updatedAt: at,
+    archivedAt: to === "archived" ? at : claim.archivedAt,
+  };
+}
+
 // Derived lifecycle view on top of the explicit status field.
 export type ClaimLifecycle =
   | "open"

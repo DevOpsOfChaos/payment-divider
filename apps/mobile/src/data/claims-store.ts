@@ -1,5 +1,6 @@
 import {
   buildPersonBalanceOverview,
+  canTransitionClaimStatus,
   claimsToPersonPositions,
   deriveClaimLifecycle,
   getClaimRemainingAmount,
@@ -175,22 +176,35 @@ export function recordClaimPayment(claimId: EntityId, amount: number): void {
   notifyExternalDataChanged();
 }
 
-export function acknowledgeClaim(claimId: EntityId): void {
-  updateClaim(claimId, { status: "debtor_acknowledged" });
-  appendEvent(claimId, "claim_acknowledged");
+// Validated status change: silently ignores transitions the dispute workflow
+// forbids (e.g. disputing a private claim or reviving an archived one).
+function applyClaimTransition(
+  claimId: EntityId,
+  to: Claim["status"],
+  eventType: ClaimEvent["eventType"],
+): void {
+  const claim = claims.find((candidate) => candidate.id === claimId);
+  if (!claim || !canTransitionClaimStatus(claim.status, to)) {
+    return;
+  }
+  updateClaim(claimId, {
+    status: to,
+    archivedAt: to === "archived" ? nowIso() : claim.archivedAt,
+  });
+  appendEvent(claimId, eventType);
   notifyExternalDataChanged();
+}
+
+export function acknowledgeClaim(claimId: EntityId): void {
+  applyClaimTransition(claimId, "debtor_acknowledged", "claim_acknowledged");
 }
 
 export function disputeClaim(claimId: EntityId): void {
-  updateClaim(claimId, { status: "disputed" });
-  appendEvent(claimId, "claim_disputed");
-  notifyExternalDataChanged();
+  applyClaimTransition(claimId, "disputed", "claim_disputed");
 }
 
 export function archiveClaim(claimId: EntityId): void {
-  updateClaim(claimId, { status: "archived", archivedAt: nowIso() });
-  appendEvent(claimId, "claim_archived");
-  notifyExternalDataChanged();
+  applyClaimTransition(claimId, "archived", "claim_archived");
 }
 
 export interface ClaimListItem {
