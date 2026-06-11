@@ -93,6 +93,58 @@ export interface ClaimEvent {
   createdAt: ISODateTimeString;
 }
 
+// Self-set per-user reminder metadata (claim_reminders table, see
+// docs/product/reminder-policy-v0.1.md). Reminders are personal: each side
+// sets their own, independent of any due date, and they are never sent on the
+// other side's behalf. Metadata only — no push/delivery in MVP 1B.
+export interface ClaimReminder {
+  id: EntityId;
+  claimId: EntityId;
+  userId: EntityId;
+  remindAt: ISODateTimeString;
+  note?: string;
+  createdAt: ISODateTimeString;
+  disabledAt?: ISODateTimeString;
+}
+
+export function isReminderActive(reminder: ClaimReminder): boolean {
+  return reminder.disabledAt === undefined;
+}
+
+// Reminders due for one user at a given time. Disabled reminders never fire;
+// other users' reminders are never visible or due for this user.
+export function getDueReminders(
+  reminders: ClaimReminder[],
+  userId: EntityId,
+  at: ISODateTimeString,
+): ClaimReminder[] {
+  return reminders.filter(
+    (reminder) =>
+      reminder.userId === userId &&
+      isReminderActive(reminder) &&
+      reminder.remindAt <= at,
+  );
+}
+
+// "Später erinnern": moves the reminder forward without losing it.
+export function snoozeReminder(
+  reminder: ClaimReminder,
+  remindAt: ISODateTimeString,
+): ClaimReminder {
+  if (remindAt <= reminder.remindAt) {
+    throw new Error(`Snooze must move reminder ${reminder.id} to a later time.`);
+  }
+  return { ...reminder, remindAt, disabledAt: undefined };
+}
+
+// "Nicht mehr erinnern": disabling is always allowed and keeps the record.
+export function disableReminder(
+  reminder: ClaimReminder,
+  disabledAt: ISODateTimeString,
+): ClaimReminder {
+  return { ...reminder, disabledAt };
+}
+
 // Allowed status transitions (docs/product/claim-dispute-clarification-v0.1.md).
 // Key dispute rules: only claims visible to the counterparty can be disputed;
 // a dispute never deletes or invalidates the claim — it stays open at the

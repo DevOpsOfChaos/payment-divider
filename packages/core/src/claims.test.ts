@@ -4,15 +4,20 @@ import { test } from "node:test";
 import {
   canTransitionClaimStatus,
   deriveClaimLifecycle,
+  disableReminder,
   filterVisibleClaims,
   getClaimPaidAmount,
   getClaimRemainingAmount,
+  getDueReminders,
   isClaimClosed,
   isLinkedClaim,
+  isReminderActive,
+  snoozeReminder,
   summarizeClaimsByPerson,
   transitionClaimStatus,
   type Claim,
   type ClaimPayment,
+  type ClaimReminder,
 } from "./claims";
 import {
   findPotentialDuplicates,
@@ -369,4 +374,49 @@ test("archived is terminal and transition sets archivedAt", () => {
   assert.equal(archived.archivedAt, NOW);
   assert.equal(canTransitionClaimStatus("archived", "linked_open"), false);
   assert.throws(() => transitionClaimStatus(archived, "private_open", NOW));
+});
+
+function makeReminder(
+  overrides: Partial<ClaimReminder> & Pick<ClaimReminder, "id">,
+): ClaimReminder {
+  return {
+    claimId: "c1",
+    userId: "user-me",
+    remindAt: "2026-06-10T09:00:00.000Z",
+    createdAt: NOW,
+    ...overrides,
+  };
+}
+
+test("due reminders are per user, time-based and skip disabled ones", () => {
+  const reminders = [
+    makeReminder({ id: "r-due" }),
+    makeReminder({ id: "r-future", remindAt: "2026-07-01T09:00:00.000Z" }),
+    makeReminder({ id: "r-disabled", disabledAt: NOW }),
+    makeReminder({ id: "r-other-user", userId: "user-anna" }),
+  ];
+
+  const due = getDueReminders(reminders, "user-me", NOW);
+
+  // Reminders are personal: the debtor's own reminder never shows up for the
+  // creditor and vice versa.
+  assert.deepEqual(due.map((reminder) => reminder.id), ["r-due"]);
+});
+
+test("snooze moves a reminder later and re-enables it", () => {
+  const reminder = makeReminder({ id: "r1", disabledAt: NOW });
+  const snoozed = snoozeReminder(reminder, "2026-06-20T09:00:00.000Z");
+
+  assert.equal(snoozed.remindAt, "2026-06-20T09:00:00.000Z");
+  assert.equal(snoozed.disabledAt, undefined);
+  // "Später erinnern" must be later, never earlier.
+  assert.throws(() => snoozeReminder(reminder, "2026-06-01T09:00:00.000Z"));
+});
+
+test("disabling a reminder keeps the record and is always allowed", () => {
+  const disabled = disableReminder(makeReminder({ id: "r1" }), NOW);
+
+  assert.equal(disabled.disabledAt, NOW);
+  assert.equal(isReminderActive(disabled), false);
+  assert.equal(getDueReminders([disabled], "user-me", NOW).length, 0);
 });

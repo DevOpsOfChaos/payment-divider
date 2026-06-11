@@ -32,7 +32,7 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 | `Claim` | `claims` |
 | `ClaimPayment` | `claim_payments` |
 | `ClaimEvent` | `claim_events` |
-| (reminder metadata, core type pending) | `claim_reminders` |
+| `ClaimReminder` | `claim_reminders` |
 | `Counterparty` | `counterparties` |
 | `CounterpartyAlias` | `counterparty_aliases` |
 
