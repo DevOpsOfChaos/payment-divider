@@ -45,3 +45,7 @@ Write policies for group creation, membership changes, activity creation, availa
 `payment_actions` remain ledger-only records. They do not initiate payments, connect providers, hold funds, import bank data, verify external settlement, or store payment methods.
 
 Payment methods, visibility profiles, receipts, location data, storage buckets, offline sync, and provider-specific behavior remain out of the MVP 1A schema.
+
+## Local validation
+
+Migrations are validated locally with the Supabase CLI (`supabase db lint`, `supabase db reset`) against a Docker-based local stack, never against a live project. See `docs/development/supabase-local.md`.

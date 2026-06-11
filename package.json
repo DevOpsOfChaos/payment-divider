@@ -8,6 +8,9 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "db:check": "corepack pnpm db:lint && corepack pnpm db:reset",
+    "db:lint": "supabase db lint",
+    "db:reset": "supabase db reset",
     "lint": "node -e \"console.log('Minimal lint placeholder: running package-level checks.')\" && corepack pnpm -r --if-present lint",
     "test": "corepack pnpm --filter @payment-divider/core test",
     "typecheck": "corepack pnpm -r --if-present typecheck"
