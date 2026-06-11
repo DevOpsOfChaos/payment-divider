@@ -56,6 +56,14 @@ The migration `20260611140000_private_claims_schema.sql` adds `claims`, `claim_p
 - Triggers keep the ledger honest: the counterparty may only change the claim status (acknowledge, dispute, clarify, mark paid), and claim-payment rows are immutable except for their confirmation state (timestamps auto-filled).
 - No payment execution, no provider fields, no payment-method storage; claim deletes are deferred like all other delete policies.
 
+## Counterparties (MVP 1B)
+
+The migration `20260612090000_counterparties_model.sql` normalizes claims onto a central person layer:
+
+- `counterparties`: owner-private records with kinds `app_user`, `invited_person`, `external_person`, a normalized name for duplicate suggestions, and an optional `linked_user_id`. `counterparty_aliases` stores alias names; merging duplicates is never automatic.
+- `claims` now reference `counterparty_id` plus an explicit `shared_with_counterparty` flag; the old per-claim `counterparty_type`/`counterparty_user_id`/`counterparty_name` columns were backfilled (one counterparty per existing claim, previously linked claims migrate as shared) and dropped.
+- RLS: counterparty records are visible to their owner only. A linked app user sees a claim only when it is explicitly shared — linking an external person never exposes old private claims. `is_claim_participant` and the counterparty update trigger were rewritten accordingly.
+
 `payment_actions` remain ledger-only records. They do not initiate payments, connect providers, hold funds, import bank data, verify external settlement, or store payment methods.
 
 Payment methods, visibility profiles, receipts, location data, storage buckets, offline sync, and provider-specific behavior remain out of the MVP 1A schema.

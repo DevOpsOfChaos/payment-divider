@@ -75,10 +75,10 @@ The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PU
 
 ```powershell
 npx supabase db start
-corepack pnpm db:rls-test   # 15 assertions, runs psql inside the local db container
+corepack pnpm db:rls-test   # 16 assertions, runs psql inside the local db container
 ```
 
-Last run 2026-06-11: 15/15 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000).
+Last run 2026-06-12: 16/16 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
 
 ## Continuous integration
 
