@@ -7,11 +7,16 @@ export function AppShell({ children }: PropsWithChildren) {
       <View style={styles.appShell}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Payment Divider</Text>
-          <Text style={styles.headerTitle}>Mock Navigation</Text>
+          <Text style={styles.headerTitle}>MVP 1A Demo</Text>
           <Text style={styles.headerCopy}>
-            Minimaler Expo-Prototyp für MVP 1A ohne Backend, Auth oder echte
-            Ledger-Aktionen.
+            Lokale Demo mit Mock-Daten: nichts wird synchronisiert, es gibt kein
+            Backend und keine Zahlungsausführung.
           </Text>
+          <View style={styles.demoBadgeRow}>
+            <Text style={styles.demoBadge}>Nur lokal</Text>
+            <Text style={styles.demoBadge}>Nicht synchronisiert</Text>
+            <Text style={styles.demoBadge}>Keine Zahlungsausführung</Text>
+          </View>
         </View>
 
         <ScrollView
@@ -57,6 +62,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: "#4f463b",
+  },
+  demoBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  demoBadge: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6f6658",
+    backgroundColor: "#eae3d6",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: "hidden",
   },
   scrollContent: {
     paddingHorizontal: 20,
