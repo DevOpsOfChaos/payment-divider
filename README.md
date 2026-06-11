@@ -43,15 +43,18 @@ Demo walkthrough: `docs/development/demo-script.md`.
 ## Current MVP status
 
 - Core ledger package: equal split, balances, participant pauses — unit-tested.
-- Supabase schema: MVP 1A tables, baseline read RLS, controlled write policies, enum values aligned with core types.
-- Mobile app: local Expo demo over a mock data layer; the Record flow is interactive (validation, equal-split preview, local drafts).
+- Supabase schema: MVP 1A tables, baseline read RLS, controlled write policies, ledger-only settlement status transitions, enum values aligned with core types; migrations validated locally (`supabase db reset` + `db lint`).
+- Mobile app: local Expo demo over a repository data layer; Record is interactive and local drafts plus settlement actions feed the session balances and timelines.
+- CI runs boundary, typecheck, test, and lint checks on every PR.
+
+Full audit: `docs/product/mvp1a-readiness.md`.
 
 ## Known limitations
 
 - Mock data only; the mobile app is not wired to Supabase.
-- Record drafts live in component state and are discarded on reload.
+- Drafts and settlement states are session-only and reset on reload.
 - No auth UI, offline sync, multi-currency, receipts, or payment methods (later MVP phases).
-- Payment-action status transitions and delete policies are deferred.
+- Membership-change, availability-edit, inbox-resolution, and delete policies are deferred.
 
 ## Repository structure
 
