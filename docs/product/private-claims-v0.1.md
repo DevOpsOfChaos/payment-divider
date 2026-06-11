@@ -158,7 +158,7 @@ remainder, `recorded`/`pending_confirmation` show as "in Klärung".
 
 A claim never rewrites group balances. The per-person summary is the only
 place where group balances and claims are combined, clearly labelled per
-source.
+source — specified in detail in `person-balance-overview-v0.1.md` (#89).
 
 ## Privacy and fairness
 

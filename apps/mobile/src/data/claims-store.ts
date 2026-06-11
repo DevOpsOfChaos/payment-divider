@@ -1,6 +1,9 @@
 import {
+  buildPersonBalanceOverview,
+  claimsToPersonPositions,
   deriveClaimLifecycle,
   getClaimRemainingAmount,
+  groupBalancesToPersonPositions,
   isClaimClosed,
   isLinkedClaim,
   normalizeCounterpartyName,
@@ -12,6 +15,7 @@ import {
   type Counterparty,
   type CounterpartyKind,
   type EntityId,
+  type PersonBalanceOverview,
   type PersonClaimSummary,
 } from "@payment-divider/core";
 
@@ -21,6 +25,7 @@ import {
   MOCK_CLAIMS,
   MOCK_COUNTERPARTIES,
 } from "../mock-data/claims";
+import { getBalanceInput } from "../mock-data/balance-derived";
 import { MOCK_CURRENT_USER_ID } from "../mock-data/ledger";
 import { notifyExternalDataChanged } from "./local-ledger";
 
@@ -225,15 +230,11 @@ function toListItem(claim: Claim): ClaimListItem {
   };
 }
 
-export function getClaimsOverview(): ClaimsOverviewData {
-  const allPayments = [...payments];
-  const allCounterparties = [...counterparties];
-  const items = claims.map(toListItem);
-
-  // Per-person summary from the current user's perspective: incoming claims
-  // (created by someone else against the current user) count as "owed by me"
-  // and are keyed to the creator's own counterparty record for them.
-  const summaryClaims = claims.map((claim) => {
+// Per-person view from the current user's perspective: incoming claims
+// (created by someone else against the current user) count as "owed by me"
+// and are keyed to the creator's own counterparty record for them.
+function claimsFromCurrentUserPerspective(): Claim[] {
+  return claims.map((claim) => {
     if (claim.creatorUserId === MOCK_CURRENT_USER_ID) {
       return claim;
     }
@@ -251,6 +252,30 @@ export function getClaimsOverview(): ClaimsOverviewData {
           : ("owed_to_me" as const),
     };
   });
+}
+
+// Person balance overview (issue #89): combines open private claims with
+// pairwise group balances per counterparty. Gross positions stay visible,
+// net is only a summary; closed positions are returned separately as history.
+// Recurring costs are a prepared source type without a producer yet.
+export function getPersonBalanceOverview(): PersonBalanceOverview[] {
+  const allCounterparties = [...counterparties];
+  const positions = [
+    ...claimsToPersonPositions(claimsFromCurrentUserPerspective(), [...payments], allCounterparties),
+    ...groupBalancesToPersonPositions({
+      ...getBalanceInput(),
+      currentUserId: MOCK_CURRENT_USER_ID,
+      counterparties: ownCounterparties(),
+    }),
+  ];
+  return buildPersonBalanceOverview({ positions, counterparties: allCounterparties });
+}
+
+export function getClaimsOverview(): ClaimsOverviewData {
+  const allPayments = [...payments];
+  const allCounterparties = [...counterparties];
+  const items = claims.map(toListItem);
+  const summaryClaims = claimsFromCurrentUserPerspective();
 
   return {
     summaries: summarizeClaimsByPerson(summaryClaims, allPayments, allCounterparties),
