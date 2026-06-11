@@ -39,10 +39,10 @@ never moves money and never pressures anyone.
 - Invite flow that actually links `invited_person` to an app user.
 - Duplicate merge as explicit user-confirmed flow (#88 prepares only).
 - `disputed → linked_open` clarification action in mobile UI (#91 spec only).
-- Free sync and premium encrypted backup model: **open in #94**. Direction
-  per issue: core sharing/sync features stay free; premium phase 1 is
-  comfort (encrypted backup, multi-device, restore). Private local data
-  stays local unless shared or synced. Not solved here — #94 decides.
+- Free sync and premium encrypted backup model: decided in
+  `free-sync-premium-backup-v0.1.md` (#94) — core sharing/sync stays free,
+  premium phase 1 is comfort only (encrypted backup, multi-device, restore);
+  private local data stays local unless shared or synced.
 
 ## Expressly not in MVP 1B
 
@@ -99,4 +99,4 @@ or anything implying pressure, escalation or legal assessment.
 | Dispute workflow | claim-dispute-clarification-v0.1 | #91 |
 | Recurring costs | shared-subscriptions-v0.1 | #85, #92 |
 | Boundary (this doc) | mvp1b-boundary-v0.1 | #93 |
-| Sync/backup model | open | #94 |
+| Sync/backup model | free-sync-premium-backup-v0.1 | #94 |
