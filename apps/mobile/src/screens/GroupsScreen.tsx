@@ -3,9 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ActivityDetailScreen } from "./ActivityDetailScreen";
 import { GroupDetailScreen } from "./GroupDetailScreen";
-import { appRepositories, type BalanceTone } from "../data";
-
-const GROUPS = appRepositories.getGroups();
+import { appRepositories, useLedgerVersion, type BalanceTone } from "../data";
 
 type GroupViewMode = "list" | "group-detail" | "activity-detail";
 
@@ -46,6 +44,8 @@ function ModeButton({
 
 export function GroupsScreen() {
   const [viewMode, setViewMode] = useState<GroupViewMode>("list");
+  useLedgerVersion();
+  const GROUPS = appRepositories.getGroups();
 
   return (
     <View style={styles.screenStack}>

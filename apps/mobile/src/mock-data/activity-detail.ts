@@ -1,6 +1,7 @@
 import type { BalanceTone } from "./groups";
 import { getActivityBalanceSummary, formatMoney } from "./balance-derived";
 import { MOCK_CONTEXT_IDS, MOCK_EXPENSES, MOCK_GROUP_IDS } from "./ledger";
+import { getDraftExpenses } from "../data/local-ledger";
 
 export interface ActivityParticipantMock {
   name: string;
@@ -54,15 +55,24 @@ export interface ActivityDetailScreenMock {
   quickActions: ActivityQuickActionMock[];
 }
 
-const amsterdamBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.amsterdam,
-);
-const amsterdamExpenses = MOCK_EXPENSES.filter(
-  (expense) => expense.contextId === MOCK_CONTEXT_IDS.amsterdam,
-);
+export function buildActivityDetailMock(): ActivityDetailScreenMock {
+  const amsterdamBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.amsterdam,
+  );
+  const amsterdamDrafts = getDraftExpenses().filter(
+    (expense) => expense.contextId === MOCK_CONTEXT_IDS.amsterdam,
+  );
+  const amsterdamExpenses = MOCK_EXPENSES.filter(
+    (expense) => expense.contextId === MOCK_CONTEXT_IDS.amsterdam,
+  );
+  const draftTimeline: ActivityTimelineItemMock[] = amsterdamDrafts.map((draft) => ({
+    actor: "Du",
+    event: `hast ${draft.title ?? "Ausgabe"} als Demo-Draft hinzugefügt · nur lokal`,
+    dateLabel: "Jetzt",
+  }));
 
-export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
+  return {
   title: "Amsterdam 2026",
   subtitle: "Freundeskreis · Reiseaktivität",
   periodLabel: "01.08.-07.08. · Teilnehmerstatus gilt für diese Aktivität.",
@@ -85,10 +95,16 @@ export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
   ],
   expensesTitle: "Ausgaben",
   expensesHint: "Hier erscheinen nur Ausgaben aus Amsterdam 2026.",
-  expenses: amsterdamExpenses.map((expense) => ({
-    label: expense.title ?? "Ausgabe",
-    amount: formatMoney(expense.amount),
-  })),
+  expenses: [
+    ...amsterdamExpenses.map((expense) => ({
+      label: expense.title ?? "Ausgabe",
+      amount: formatMoney(expense.amount),
+    })),
+    ...amsterdamDrafts.map((expense) => ({
+      label: `${expense.title ?? "Ausgabe"} · Demo-Draft`,
+      amount: formatMoney(expense.amount),
+    })),
+  ],
   paymentActionsTitle: "Zahlungsaktionen",
   paymentActionsHint:
     "Ledger-only Vorschau: externe Zahlung wird nur markiert oder bestätigt.",
@@ -98,6 +114,7 @@ export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
   ],
   timelineTitle: "Timeline",
   timeline: [
+    ...draftTimeline,
     { actor: "Anna", event: "hat Abendessen hinzugefügt", dateLabel: "Heute" },
     {
       actor: "Max",
@@ -111,4 +128,5 @@ export const ACTIVITY_DETAIL_SCREEN_MOCK: ActivityDetailScreenMock = {
     { label: "Zahlung bestätigen" },
     { label: "Details ansehen" },
   ],
-};
+  };
+}

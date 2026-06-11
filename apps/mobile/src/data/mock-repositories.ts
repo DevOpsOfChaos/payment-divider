@@ -1,22 +1,24 @@
 import { buildDefaultExpenseParticipantSelection } from "@payment-divider/core";
 
-import { ACTIVITY_DETAIL_SCREEN_MOCK } from "../mock-data/activity-detail";
-import { GROUP_DETAIL_SCREEN_MOCK } from "../mock-data/group-detail";
-import { GROUPS_MOCK } from "../mock-data/groups";
+import { buildActivityDetailMock } from "../mock-data/activity-detail";
+import { buildGroupDetailMock } from "../mock-data/group-detail";
+import { buildGroupsMock } from "../mock-data/groups";
 import { INBOX_SCREEN_MOCK } from "../mock-data/inbox";
 import {
   DEBTS_MOCK,
   GROUP_ATTENTION_MOCK,
   OPEN_ACTIONS_MOCK,
-  OVERVIEW_BALANCE_MOCK,
   RECEIVABLES_MOCK,
   RECENT_ACTIVITY_MOCK,
+  buildOverviewBalanceMock,
 } from "../mock-data/overview";
+import { getDraftExpenses } from "./local-ledger";
 import { PROFILE_SCREEN_MOCK } from "../mock-data/profile";
 import {
   MOCK_CONTEXT_IDS,
   MOCK_CONTEXT_MEMBERS,
   MOCK_CURRENT_USER_ID,
+  MOCK_GROUP_IDS,
   MOCK_MEMBER_AVAILABILITY,
   MOCK_USERS,
 } from "../mock-data/ledger";
@@ -39,6 +41,8 @@ function buildRecordSetup(): RecordSetupData {
   const defaultSelectedUserIds = new Set(selection.defaultSelectedParticipantUserIds);
 
   return {
+    groupId: MOCK_GROUP_IDS.friends,
+    contextId: MOCK_CONTEXT_IDS.amsterdam,
     contextLabel: "Freundeskreis · Amsterdam 2026",
     expenseDate: RECORD_EXPENSE_DATE,
     currency: "EUR",
@@ -66,16 +70,16 @@ function buildRecordSetup(): RecordSetupData {
 
 export const mockRepositories: AppRepositories = {
   getOverview: () => ({
-    balance: OVERVIEW_BALANCE_MOCK,
+    balance: buildOverviewBalanceMock(getDraftExpenses().length),
     receivables: RECEIVABLES_MOCK,
     debts: DEBTS_MOCK,
     openActions: OPEN_ACTIONS_MOCK,
     recentActivity: RECENT_ACTIVITY_MOCK,
     groupAttention: GROUP_ATTENTION_MOCK,
   }),
-  getGroups: () => GROUPS_MOCK,
-  getGroupDetail: () => GROUP_DETAIL_SCREEN_MOCK,
-  getActivityDetail: () => ACTIVITY_DETAIL_SCREEN_MOCK,
+  getGroups: buildGroupsMock,
+  getGroupDetail: buildGroupDetailMock,
+  getActivityDetail: buildActivityDetailMock,
   getRecordSetup: buildRecordSetup,
   getInbox: () => INBOX_SCREEN_MOCK,
   getProfile: () => PROFILE_SCREEN_MOCK,

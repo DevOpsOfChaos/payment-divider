@@ -34,15 +34,20 @@ export interface OverviewAttentionMock {
   amountHint?: string;
 }
 
-const personalBalanceSummary = getPersonalBalanceSummary();
+export function buildOverviewBalanceMock(draftCount: number): OverviewBalanceMock {
+  const personalBalanceSummary = getPersonalBalanceSummary();
 
-export const OVERVIEW_BALANCE_MOCK: OverviewBalanceMock = {
-  heading: "Gesamtsaldo",
-  amountLabel: personalBalanceSummary.label,
-  helperText: "Du bekommst mehr als du schuldest.",
-  tone: personalBalanceSummary.tone,
-  breakdown: personalBalanceSummary.breakdown,
-};
+  return {
+    heading: "Gesamtsaldo",
+    amountLabel: personalBalanceSummary.label,
+    helperText:
+      draftCount > 0
+        ? `Inklusive ${draftCount} lokaler Demo-Drafts · nur lokal · nicht synchronisiert.`
+        : "Du bekommst mehr als du schuldest.",
+    tone: personalBalanceSummary.tone,
+    breakdown: personalBalanceSummary.breakdown,
+  };
+}
 
 export const RECEIVABLES_MOCK: OverviewBalanceRowMock[] = [
   {

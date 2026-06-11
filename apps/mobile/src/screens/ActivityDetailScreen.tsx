@@ -1,8 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { appRepositories, type BalanceTone } from "../data";
-
-const ACTIVITY_DETAIL = appRepositories.getActivityDetail();
+import { appRepositories, useLedgerVersion, type BalanceTone } from "../data";
 
 function getBalanceStyle(tone: BalanceTone) {
   switch (tone) {
@@ -18,6 +16,9 @@ function getBalanceStyle(tone: BalanceTone) {
 }
 
 export function ActivityDetailScreen() {
+  useLedgerVersion();
+  const ACTIVITY_DETAIL = appRepositories.getActivityDetail();
+
   return (
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>{ACTIVITY_DETAIL.title}</Text>
