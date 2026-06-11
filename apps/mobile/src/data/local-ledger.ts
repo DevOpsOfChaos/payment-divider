@@ -55,6 +55,12 @@ export function getLedgerVersion(): number {
   return ledgerVersion;
 }
 
+// Lets non-draft data sources (e.g. the supabase-local adapter finishing a
+// fetch) trigger the same screen re-render path as draft changes.
+export function notifyExternalDataChanged(): void {
+  emitChange();
+}
+
 export function subscribeToLocalLedger(listener: () => void): () => void {
   listeners.add(listener);
   return () => {

@@ -36,7 +36,10 @@ export {
   type DataSourceMode,
 } from "../config/data-source";
 
-// supabase-local currently resolves to the mock repositories as well; the
-// read adapter lands in a follow-up issue. The mode switch and client
-// scaffold exist so the adapter can slot in behind the same interfaces.
-export const appRepositories: AppRepositories = mockRepositories;
+import { getDataSourceMode as resolveMode } from "../config/data-source";
+import { supabaseRepositories } from "./supabase-repositories";
+
+// supabase-local is read-only for now (writes land in a follow-up issue) and
+// falls back to mock data with a dev hint while unconfigured or loading.
+export const appRepositories: AppRepositories =
+  resolveMode() === "supabase-local" ? supabaseRepositories : mockRepositories;
