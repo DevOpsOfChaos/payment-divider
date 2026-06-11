@@ -55,18 +55,21 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 
 `payment_actions` remain ledger-only in both layers: status changes record what users marked or confirmed outside the app and never imply payment execution.
 
-## Known divergences (TS vs SQL enums)
+## Enum values (reconciled)
 
-These check constraints and union types drifted apart and should be reconciled in a future issue:
+The migration `20260611090000_reconcile_core_enum_values.sql` aligned all SQL check constraints with the TypeScript unions; the TypeScript unions are the domain source of truth. Current shared values:
 
-| Concept | TypeScript union | SQL check constraint |
-| --- | --- | --- |
-| `FriendConnectionStatus` | `pending, accepted, declined, blocked` | `pending, accepted, blocked, rejected` (`declined` vs `rejected`) |
-| `GroupType` | `friends, trip, shared_flat, couple, family, event, custom` | `friends, shared_flat, trip, couple, family, other` (`event`/`custom` vs `other`) |
-| `GroupMemberRole` | `owner, admin, member` | `admin, member` (no `owner`) |
-| `GroupContextType` | `general, trip, event, household, purchase, custom` | `general, trip, event, recurring, other` |
-| `MemberAvailabilityMode` | `paused, available` | `unavailable, paused` (no overlap on the second value) |
-| `ExpenseShareType` | `equal, fixed` | `equal, exact` (`fixed` vs `exact`) |
+| Concept | Shared values (TS union = SQL check) |
+| --- | --- |
+| `FriendConnectionStatus` | `pending, accepted, declined, blocked` |
+| `GroupType` | `friends, trip, shared_flat, couple, family, event, custom` |
+| `GroupMemberRole` | `owner, admin, member` |
+| `GroupContextType` | `general, trip, event, household, purchase, custom` |
+| `MemberAvailabilityMode` | `paused, available` |
+| `ExpenseShareType` | `equal, fixed` |
+| `PaymentActionStatus` | `suggested, marked_paid, confirmed, rejected` |
+
+Legacy SQL-only values were remapped in the migration: `rejected`→`declined` (friend connections), `other`→`custom` (groups), `recurring`/`other`→`custom` (contexts), `unavailable`→`paused` (availability), `exact`→`fixed` (shares).
 
 Other structural differences:
 
@@ -74,4 +77,4 @@ Other structural differences:
 - `group_contexts` has `created_at` in SQL but not in the TS type.
 - TS `User` carries `email`/`phone` that the SQL `profiles` table intentionally does not store.
 
-Reconciling these unions/constraints is tracked as follow-up work; until then, code that bridges core types and the database must translate the diverging enum values explicitly.
+These structural gaps are intentional for MVP 1A; enum values no longer diverge.

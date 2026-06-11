@@ -46,6 +46,10 @@ Write policies for group creation, membership changes, activity creation, availa
 
 Payment methods, visibility profiles, receipts, location data, storage buckets, offline sync, and provider-specific behavior remain out of the MVP 1A schema.
 
+## Enum reconciliation
+
+A follow-up migration (`20260611090000_reconcile_core_enum_values.sql`) aligns all text check-constraint values with the core TypeScript unions and remaps legacy values. The TypeScript unions are the source of truth for enum values.
+
 ## Core type mapping
 
 How the shared core domain types map to these tables and columns, including known enum divergences, is documented in `docs/architecture/core-database-field-mapping.md`.
