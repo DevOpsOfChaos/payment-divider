@@ -18,7 +18,7 @@ Open in Expo Go (QR code) or press `w` for web preview.
 3. **Group detail** — switch the view mode inside the Groups tab: activities, members incl. paused member, timeline, quick actions.
 4. **Activity detail** — Amsterdam 2026: activity-scoped balance, active vs. paused participants, expenses, ledger-only payment actions.
 5. **Record (core of the demo)** — enter an amount in German format (`42,80`), optional title, tap a payer, toggle participants. Max is paused for the date and not preselected, but can be manually included. The equal-split preview updates live via `splitExpenseEqually`. Saving creates a local-only draft listed below the button.
-6. **Inbox** — action items only (confirm payment, invitation), separate from the timeline.
+6. **Inbox (second demo highlight)** — interactive ledger-only settlement: mark your own suggested payment as externally settled ("als extern erledigt markieren"), or confirm/reject an incoming marked payment. Balances on Overview/Groups update live; rejecting reopens the balance. All local, nothing is executed.
 7. **Profile** — identity rows and visibility-profile concept; payment details are placeholders for MVP 1B.
 
 ## Talking points
@@ -26,4 +26,5 @@ Open in Expo Go (QR code) or press `w` for web preview.
 - Balances on every screen come from one shared core package (`@payment-divider/core`), tested with 19 unit tests.
 - Payment actions are ledger-only records; the app never moves money.
 - Participant pauses change default selection only, never history or balances.
-- Drafts in Record are local component state: closing the app discards them — persistence and backend wiring are later issues.
+- Drafts and settlement states are session-only in-memory ledger state: closing the app discards them — persistence and backend wiring are later issues.
+- Drafts entered in Record immediately change the Overview, group, and activity balances and appear in the timelines as "Demo-Draft".
