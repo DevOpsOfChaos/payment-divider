@@ -1,9 +1,72 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { appRepositories } from "../data";
+import { Pressable } from "react-native";
+
+import {
+  appRepositories,
+  confirmPaymentAction,
+  formatMoney,
+  markPaymentActionPaid,
+  rejectPaymentAction,
+  useLedgerVersion,
+  type SettlementActionKind,
+  type SettlementItemData,
+} from "../data";
 import type { InboxItemMock } from "../mock-data/inbox";
 
 const INBOX = appRepositories.getInbox();
+
+const SETTLEMENT_ACTION_LABELS: Record<SettlementActionKind, string> = {
+  mark_paid: "als extern erledigt markieren",
+  confirm: "bestätigen",
+  reject: "ablehnen",
+};
+
+function runSettlementAction(item: SettlementItemData, kind: SettlementActionKind): void {
+  if (kind === "mark_paid") {
+    markPaymentActionPaid(item.action);
+  } else if (kind === "confirm") {
+    confirmPaymentAction(item.action);
+  } else {
+    rejectPaymentAction(item.action);
+  }
+}
+
+function SettlementCard({ item }: { item: SettlementItemData }) {
+  const direction =
+    item.role === "payer"
+      ? `Du → ${item.counterpartyName}`
+      : `${item.counterpartyName} → Du`;
+
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemTitle}>Externe Zahlung · {direction}</Text>
+        <Text style={styles.sourcePill}>{item.source}</Text>
+      </View>
+
+      <Text style={styles.itemDetail}>
+        {formatMoney(item.action.amount)} · Ledger-only: Zahlung passiert außerhalb der App.
+      </Text>
+
+      <View style={styles.metaBlock}>
+        <Text style={styles.metaLabel}>Status</Text>
+        <Text style={styles.metaValue}>{item.statusLabel}</Text>
+      </View>
+
+      {item.availableActions.map((kind) => (
+        <Pressable
+          key={kind}
+          accessibilityRole="button"
+          onPress={() => runSettlementAction(item, kind)}
+          style={styles.settlementButton}
+        >
+          <Text style={styles.settlementButtonText}>{SETTLEMENT_ACTION_LABELS[kind]}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock) {
   return (
@@ -29,6 +92,9 @@ function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock
 }
 
 export function InboxScreen() {
+  useLedgerVersion();
+  const settlementItems = appRepositories.getSettlementItems();
+
   return (
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>{INBOX.title}</Text>
@@ -39,6 +105,9 @@ export function InboxScreen() {
       </View>
 
       <View style={styles.section}>
+        {settlementItems.map((item) => (
+          <SettlementCard key={item.action.id} item={item} />
+        ))}
         {INBOX.items.map((item) => (
           <InboxCard key={`${item.title}-${item.source}`} {...item} />
         ))}
@@ -156,5 +225,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#1f1b16",
+  },
+  settlementButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "#1f1b16",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settlementButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fffaf0",
   },
 });

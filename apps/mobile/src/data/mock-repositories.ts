@@ -12,17 +12,24 @@ import {
   RECENT_ACTIVITY_MOCK,
   buildOverviewBalanceMock,
 } from "../mock-data/overview";
-import { getDraftExpenses } from "./local-ledger";
+import { applyLocalPaymentActionOverrides, getDraftExpenses } from "./local-ledger";
 import { PROFILE_SCREEN_MOCK } from "../mock-data/profile";
 import {
   MOCK_CONTEXT_IDS,
   MOCK_CONTEXT_MEMBERS,
   MOCK_CURRENT_USER_ID,
   MOCK_GROUP_IDS,
+  MOCK_GROUPS,
   MOCK_MEMBER_AVAILABILITY,
+  MOCK_PAYMENT_ACTIONS,
   MOCK_USERS,
 } from "../mock-data/ledger";
-import type { AppRepositories, RecordSetupData } from "./repositories";
+import type {
+  AppRepositories,
+  RecordSetupData,
+  SettlementActionKind,
+  SettlementItemData,
+} from "./repositories";
 
 const RECORD_EXPENSE_DATE = "2026-08-02";
 
@@ -68,6 +75,53 @@ function buildRecordSetup(): RecordSetupData {
   };
 }
 
+function getGroupName(groupId: string): string {
+  return MOCK_GROUPS.find((group) => group.id === groupId)?.name ?? groupId;
+}
+
+function buildSettlementItems(): SettlementItemData[] {
+  return applyLocalPaymentActionOverrides(MOCK_PAYMENT_ACTIONS)
+    .filter(
+      (action) =>
+        action.payerId === MOCK_CURRENT_USER_ID || action.payeeId === MOCK_CURRENT_USER_ID,
+    )
+    .map((action) => {
+      const role = action.payerId === MOCK_CURRENT_USER_ID ? "payer" : "payee";
+      const counterpartyId = role === "payer" ? action.payeeId : action.payerId;
+
+      let statusLabel: string;
+      let availableActions: SettlementActionKind[] = [];
+      switch (action.status) {
+        case "suggested":
+          statusLabel = "Vorschlag offen";
+          availableActions = role === "payer" ? ["mark_paid"] : [];
+          break;
+        case "marked_paid":
+          statusLabel =
+            role === "payee"
+              ? "Bestätigung offen"
+              : "als extern erledigt markiert · wartet auf Bestätigung";
+          availableActions = role === "payee" ? ["confirm", "reject"] : [];
+          break;
+        case "confirmed":
+          statusLabel = "bestätigt · nur lokal dokumentiert";
+          break;
+        case "rejected":
+          statusLabel = "abgelehnt · Saldo wieder offen";
+          break;
+      }
+
+      return {
+        action,
+        counterpartyName: getUserName(counterpartyId),
+        source: getGroupName(action.groupId),
+        role,
+        statusLabel,
+        availableActions,
+      };
+    });
+}
+
 export const mockRepositories: AppRepositories = {
   getOverview: () => ({
     balance: buildOverviewBalanceMock(getDraftExpenses().length),
@@ -82,5 +136,6 @@ export const mockRepositories: AppRepositories = {
   getActivityDetail: buildActivityDetailMock,
   getRecordSetup: buildRecordSetup,
   getInbox: () => INBOX_SCREEN_MOCK,
+  getSettlementItems: buildSettlementItems,
   getProfile: () => PROFILE_SCREEN_MOCK,
 };

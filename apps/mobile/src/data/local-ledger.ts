@@ -1,4 +1,10 @@
-import type { Expense, ExpenseShare } from "@payment-divider/core";
+import type {
+  EntityId,
+  Expense,
+  ExpenseShare,
+  PaymentAction,
+  PaymentActionStatus,
+} from "@payment-divider/core";
 
 // Session-only in-memory draft ledger. Drafts entered in the Record screen
 // live here and are merged into the demo balance/timeline derivations.
@@ -54,4 +60,54 @@ export function subscribeToLocalLedger(listener: () => void): () => void {
   return () => {
     listeners.delete(listener);
   };
+}
+
+// Session-local ledger status overrides for demo payment actions. Only the
+// two ledger transitions exist: payer marks suggested as marked_paid; payee
+// confirms or rejects a marked_paid action. Nothing here executes a payment.
+
+let paymentActionStatusOverrides: ReadonlyMap<EntityId, PaymentActionStatus> = new Map();
+
+export function getEffectivePaymentActionStatus(action: PaymentAction): PaymentActionStatus {
+  return paymentActionStatusOverrides.get(action.id) ?? action.status;
+}
+
+export function applyLocalPaymentActionOverrides(
+  actions: readonly PaymentAction[],
+): PaymentAction[] {
+  return actions.map((action) => {
+    const status = getEffectivePaymentActionStatus(action);
+    return status === action.status ? action : { ...action, status };
+  });
+}
+
+function setPaymentActionStatus(actionId: EntityId, status: PaymentActionStatus): void {
+  const next = new Map(paymentActionStatusOverrides);
+  next.set(actionId, status);
+  paymentActionStatusOverrides = next;
+  emitChange();
+}
+
+function transitionPaymentAction(
+  action: PaymentAction,
+  from: PaymentActionStatus,
+  to: PaymentActionStatus,
+): boolean {
+  if (getEffectivePaymentActionStatus(action) !== from) {
+    return false;
+  }
+  setPaymentActionStatus(action.id, to);
+  return true;
+}
+
+export function markPaymentActionPaid(action: PaymentAction): boolean {
+  return transitionPaymentAction(action, "suggested", "marked_paid");
+}
+
+export function confirmPaymentAction(action: PaymentAction): boolean {
+  return transitionPaymentAction(action, "marked_paid", "confirmed");
+}
+
+export function rejectPaymentAction(action: PaymentAction): boolean {
+  return transitionPaymentAction(action, "marked_paid", "rejected");
 }

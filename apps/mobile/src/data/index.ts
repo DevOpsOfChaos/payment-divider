@@ -16,10 +16,18 @@ export type { BalanceTone } from "../mock-data/groups";
 export {
   addDraftExpense,
   clearDraftExpenses,
+  confirmPaymentAction,
   getDraftExpenses,
   getDraftExpenseShares,
+  markPaymentActionPaid,
+  rejectPaymentAction,
 } from "./local-ledger";
 export type { DraftExpenseInput } from "./local-ledger";
+export type {
+  SettlementActionKind,
+  SettlementItemData,
+  SettlementRole,
+} from "./repositories";
 export { useLedgerVersion } from "./use-local-ledger";
 
 export const appRepositories: AppRepositories = mockRepositories;
