@@ -8,6 +8,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "db:boundary-check": "node scripts/check-sql-boundaries.mjs",
     "db:check": "corepack pnpm db:lint && corepack pnpm db:reset",
     "db:lint": "supabase db lint",
     "db:reset": "supabase db reset",
