@@ -40,6 +40,11 @@ corepack pnpm db:lint             # needs Supabase CLI + Docker, see docs/develo
 
 Demo walkthrough: `docs/development/demo-script.md`.
 
+## Data modes
+
+- `local-demo` (default): in-memory mock data, no network, no setup.
+- `supabase-local` (optional): points the app at a locally running Supabase stack. Copy `.env.example` to `apps/mobile/.env`, start the stack (`npx supabase start`), and fill in the local URL and publishable client key it prints. Placeholders only in git; real env files are ignored. No cloud project, no secrets, no auth UI yet.
+
 ## Current MVP status
 
 - Core ledger package: equal split, balances, participant pauses — unit-tested.

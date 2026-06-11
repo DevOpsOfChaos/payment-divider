@@ -65,6 +65,10 @@ corepack pnpm db:boundary-check
 
 It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbidden terms appear outside clearly marked exclusion comments.
 
+## Mobile data modes
+
+The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PUBLIC_DATA_SOURCE=supabase-local` in `apps/mobile/.env` (template: `.env.example` at the repo root) selects the local-Supabase mode, configured via `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLIC_KEY` — both printed by `supabase start`. Missing configuration falls back to local-demo with a dev hint instead of crashing. Only `.env.example` may be committed; the boundary check enforces this and rejects secret-like values in it.
+
 ## Continuous integration
 
 `.github/workflows/checks.yml` runs the boundary check, typecheck, tests, lint, and whitespace hygiene on every pull request and push to `main`. CI uses no secrets and never connects to a Supabase project; Docker-based `db lint`/`db reset` stay a local workflow.

@@ -14,6 +14,7 @@
  * No dependencies. Run via: pnpm db:boundary-check
  */
 
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import process from "node:process";
@@ -121,6 +122,53 @@ for (const file of collectSqlFiles(SQL_DIR)) {
       }
     }
     offset += line.length + 1;
+  });
+}
+
+// Env hygiene: only .env.example may be tracked, and it must hold
+// placeholders, never values that look like real keys or tokens.
+const SECRET_VALUE_PATTERNS = [
+  /eyJ[A-Za-z0-9_-]{20,}/, // JWT-like
+  /sb_(secret|publishable)_[A-Za-z0-9]/i,
+  /[A-Za-z0-9+/=_-]{40,}/, // long key-like blobs
+];
+
+const trackedEnvFiles = execFileSync("git", ["ls-files", ".env*", "**/.env*"], {
+  encoding: "utf8",
+})
+  .split("\n")
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0);
+
+for (const envFile of trackedEnvFiles) {
+  if (!envFile.endsWith(".env.example")) {
+    violations.push({
+      file: envFile,
+      line: 1,
+      term: "tracked env file",
+      text: "Only .env.example may be committed.",
+      inComment: false,
+    });
+    continue;
+  }
+
+  const lines = readFileSync(join(ROOT, envFile), "utf8").split("\n");
+  lines.forEach((line, index) => {
+    const value = line.split("=").slice(1).join("=").trim();
+    if (!value || line.trim().startsWith("#")) {
+      return;
+    }
+    for (const pattern of SECRET_VALUE_PATTERNS) {
+      if (pattern.test(value)) {
+        violations.push({
+          file: envFile,
+          line: index + 1,
+          term: "secret-like env value",
+          text: line.trim(),
+          inComment: false,
+        });
+      }
+    }
   });
 }
 
