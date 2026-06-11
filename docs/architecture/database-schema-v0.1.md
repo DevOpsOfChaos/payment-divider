@@ -40,7 +40,9 @@ The first RLS policy migration keeps access conservative:
 
 Current group membership means a matching `group_members` row with `user_id = auth.uid()` and `left_at is null`. Small stable security-definer helper functions centralize this membership check and avoid recursive RLS policy lookups.
 
-Write policies for group creation, membership changes, activity creation, availability edits, expense writes, expense shares, payment action state changes, timeline writes, and inbox resolution are intentionally deferred until the corresponding application flows are designed.
+A follow-up migration (`20260611100000_controlled_mvp1a_write_policies.sql`) adds controlled write policies: own-profile insert, group creation by the creator, initial creator membership plus admin-managed member inserts, activity creation by members and updates by owners/admins, expense and expense-share inserts by active members, ledger-only payment-action inserts restricted to an involved party, timeline appends by the acting member, and own-inbox inserts. It also adds `is_group_creator` and `is_group_admin` security-definer helpers.
+
+Still deferred until the corresponding application flows are designed: payment-action status transitions (mark paid, confirm, reject), membership changes beyond creation, availability edits, inbox resolution updates, and all delete policies.
 
 `payment_actions` remain ledger-only records. They do not initiate payments, connect providers, hold funds, import bank data, verify external settlement, or store payment methods.
 
