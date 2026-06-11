@@ -30,4 +30,13 @@ export type {
 } from "./repositories";
 export { useLedgerVersion } from "./use-local-ledger";
 
+export {
+  getDataSourceMode,
+  getSupabaseLocalConfigHint,
+  type DataSourceMode,
+} from "../config/data-source";
+
+// supabase-local currently resolves to the mock repositories as well; the
+// read adapter lands in a follow-up issue. The mode switch and client
+// scaffold exist so the adapter can slot in behind the same interfaces.
 export const appRepositories: AppRepositories = mockRepositories;
