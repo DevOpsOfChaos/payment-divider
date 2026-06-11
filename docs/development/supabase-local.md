@@ -1,6 +1,6 @@
 # Local Supabase Schema Validation
 
-Status: MVP 1A development workflow
+Status: MVP 1A development workflow — last validated 2026-06-11 with Supabase CLI 2.105.0 via `npx supabase`: `db start` applied all four migrations plus seed cleanly, `db lint` reported no schema errors, and `db reset` replayed the full chain. `supabase/config.toml` is the stock generated template (all sensitive values via `env()` substitution, no secrets).
 
 This document describes how to validate the SQL migrations in `supabase/migrations/` on a local machine. It never connects to a live Supabase project and never requires secrets.
 
@@ -24,11 +24,13 @@ macOS/Linux (Homebrew):
 brew install supabase/tap/supabase
 ```
 
-Alternatively run it ad hoc without installing:
+Alternatively run it ad hoc without installing (this is the validated path on this repo):
 
 ```powershell
 npx supabase --version
 ```
+
+Docker Desktop must be running first; start it and wait until `docker info` succeeds.
 
 Verify the installation:
 
