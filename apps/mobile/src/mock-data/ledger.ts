@@ -1,10 +1,12 @@
 import type {
+  ContextMember,
   CurrencyCode,
   EntityId,
   Expense,
   ExpenseShare,
   Group,
   GroupContext,
+  MemberAvailability,
   PaymentAction,
   User,
 } from "@payment-divider/core";
@@ -287,6 +289,35 @@ export const MOCK_EXPENSE_SHARES: ExpenseShare[] = [
     MOCK_USER_IDS.anna,
     MOCK_USER_IDS.leo,
   ]),
+];
+
+export const MOCK_CONTEXT_MEMBERS: ContextMember[] = [
+  MOCK_USER_IDS.manu,
+  MOCK_USER_IDS.anna,
+  MOCK_USER_IDS.lukas,
+  MOCK_USER_IDS.max,
+].map((userId) => ({
+  id: `context-member-amsterdam-${userId}`,
+  contextId: MOCK_CONTEXT_IDS.amsterdam,
+  userId,
+  defaultIncluded: true,
+  joinedAt: CREATED_AT,
+}));
+
+export const MOCK_MEMBER_AVAILABILITY: MemberAvailability[] = [
+  {
+    id: "availability-max-amsterdam",
+    groupId: MOCK_GROUP_IDS.friends,
+    contextId: MOCK_CONTEXT_IDS.amsterdam,
+    userId: MOCK_USER_IDS.max,
+    unavailableFrom: "2026-08-01",
+    unavailableUntil: "2026-08-07",
+    mode: "paused",
+    note: "Max pausiert bis 07.08.",
+    affectsDefaultSelection: true,
+    createdBy: MOCK_USER_IDS.max,
+    createdAt: CREATED_AT,
+  },
 ];
 
 export const MOCK_PAYMENT_ACTIONS: PaymentAction[] = [

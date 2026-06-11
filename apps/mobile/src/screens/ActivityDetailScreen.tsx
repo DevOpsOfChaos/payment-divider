@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { ACTIVITY_DETAIL_SCREEN_MOCK } from "../mock-data/activity-detail";
-import type { BalanceTone } from "../mock-data/groups";
+import { appRepositories, type BalanceTone } from "../data";
+
+const ACTIVITY_DETAIL = appRepositories.getActivityDetail();
 
 function getBalanceStyle(tone: BalanceTone) {
   switch (tone) {
@@ -19,32 +20,32 @@ function getBalanceStyle(tone: BalanceTone) {
 export function ActivityDetailScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>{ACTIVITY_DETAIL_SCREEN_MOCK.title}</Text>
-      <Text style={styles.screenPurpose}>{ACTIVITY_DETAIL_SCREEN_MOCK.subtitle}</Text>
-      <Text style={styles.periodLabel}>{ACTIVITY_DETAIL_SCREEN_MOCK.periodLabel}</Text>
+      <Text style={styles.screenTitle}>{ACTIVITY_DETAIL.title}</Text>
+      <Text style={styles.screenPurpose}>{ACTIVITY_DETAIL.subtitle}</Text>
+      <Text style={styles.periodLabel}>{ACTIVITY_DETAIL.periodLabel}</Text>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.eyebrow}>{ACTIVITY_DETAIL_SCREEN_MOCK.balanceTitle}</Text>
+        <Text style={styles.eyebrow}>{ACTIVITY_DETAIL.balanceTitle}</Text>
         <Text
           style={[
             styles.balanceSummary,
-            getBalanceStyle(ACTIVITY_DETAIL_SCREEN_MOCK.balanceTone),
+            getBalanceStyle(ACTIVITY_DETAIL.balanceTone),
           ]}
         >
-          {ACTIVITY_DETAIL_SCREEN_MOCK.balanceSummary}
+          {ACTIVITY_DETAIL.balanceSummary}
         </Text>
-        <Text style={styles.helperText}>{ACTIVITY_DETAIL_SCREEN_MOCK.balanceHint}</Text>
+        <Text style={styles.helperText}>{ACTIVITY_DETAIL.balanceHint}</Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.activeParticipantsTitle}
+          {ACTIVITY_DETAIL.activeParticipantsTitle}
         </Text>
         <Text style={styles.sectionHint}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.activeParticipantsHint}
+          {ACTIVITY_DETAIL.activeParticipantsHint}
         </Text>
         <View style={styles.sectionList}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.activeParticipants.map((participant) => (
+          {ACTIVITY_DETAIL.activeParticipants.map((participant) => (
             <View key={participant.name} style={styles.listCard}>
               <Text style={styles.rowTitle}>{participant.name}</Text>
               {participant.detail ? (
@@ -57,13 +58,13 @@ export function ActivityDetailScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.pausedParticipantsTitle}
+          {ACTIVITY_DETAIL.pausedParticipantsTitle}
         </Text>
         <Text style={styles.sectionHint}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.pausedParticipantsHint}
+          {ACTIVITY_DETAIL.pausedParticipantsHint}
         </Text>
         <View style={styles.sectionList}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.pausedParticipants.map((participant) => (
+          {ACTIVITY_DETAIL.pausedParticipants.map((participant) => (
             <View key={participant.name} style={styles.listCard}>
               <Text style={styles.rowTitle}>{participant.name}</Text>
               {participant.detail ? (
@@ -75,10 +76,10 @@ export function ActivityDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL_SCREEN_MOCK.expensesTitle}</Text>
-        <Text style={styles.sectionHint}>{ACTIVITY_DETAIL_SCREEN_MOCK.expensesHint}</Text>
+        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL.expensesTitle}</Text>
+        <Text style={styles.sectionHint}>{ACTIVITY_DETAIL.expensesHint}</Text>
         <View style={styles.sectionList}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.expenses.map((expense) => (
+          {ACTIVITY_DETAIL.expenses.map((expense) => (
             <View key={expense.label} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>{expense.label}</Text>
@@ -91,13 +92,13 @@ export function ActivityDetailScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.paymentActionsTitle}
+          {ACTIVITY_DETAIL.paymentActionsTitle}
         </Text>
         <Text style={styles.sectionHint}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.paymentActionsHint}
+          {ACTIVITY_DETAIL.paymentActionsHint}
         </Text>
         <View style={styles.sectionList}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.paymentActions.map((action) => (
+          {ACTIVITY_DETAIL.paymentActions.map((action) => (
             <View key={`${action.person}-${action.amount}`} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>{action.person}</Text>
@@ -110,9 +111,9 @@ export function ActivityDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL_SCREEN_MOCK.timelineTitle}</Text>
+        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL.timelineTitle}</Text>
         <View style={styles.sectionList}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.timeline.map((item) => (
+          {ACTIVITY_DETAIL.timeline.map((item) => (
             <View key={`${item.actor}-${item.event}`} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>
@@ -126,9 +127,9 @@ export function ActivityDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL_SCREEN_MOCK.quickActionsTitle}</Text>
+        <Text style={styles.sectionTitle}>{ACTIVITY_DETAIL.quickActionsTitle}</Text>
         <View style={styles.actionGrid}>
-          {ACTIVITY_DETAIL_SCREEN_MOCK.quickActions.map((action) => (
+          {ACTIVITY_DETAIL.quickActions.map((action) => (
             <View key={action.label} style={styles.actionPill}>
               <Text style={styles.actionText}>{action.label}</Text>
             </View>

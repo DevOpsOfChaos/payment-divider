@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { INBOX_SCREEN_MOCK, type InboxItemMock } from "../mock-data/inbox";
+import { appRepositories } from "../data";
+import type { InboxItemMock } from "../mock-data/inbox";
+
+const INBOX = appRepositories.getInbox();
 
 function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock) {
   return (
@@ -28,15 +31,15 @@ function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock
 export function InboxScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>{INBOX_SCREEN_MOCK.title}</Text>
-      <Text style={styles.screenPurpose}>{INBOX_SCREEN_MOCK.subtitle}</Text>
+      <Text style={styles.screenTitle}>{INBOX.title}</Text>
+      <Text style={styles.screenPurpose}>{INBOX.subtitle}</Text>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryText}>{INBOX_SCREEN_MOCK.summary}</Text>
+        <Text style={styles.summaryText}>{INBOX.summary}</Text>
       </View>
 
       <View style={styles.section}>
-        {INBOX_SCREEN_MOCK.items.map((item) => (
+        {INBOX.items.map((item) => (
           <InboxCard key={`${item.title}-${item.source}`} {...item} />
         ))}
       </View>

@@ -3,7 +3,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ActivityDetailScreen } from "./ActivityDetailScreen";
 import { GroupDetailScreen } from "./GroupDetailScreen";
-import { GROUPS_MOCK, type BalanceTone } from "../mock-data/groups";
+import { appRepositories, type BalanceTone } from "../data";
+
+const GROUPS = appRepositories.getGroups();
 
 type GroupViewMode = "list" | "group-detail" | "activity-detail";
 
@@ -82,7 +84,7 @@ export function GroupsScreen() {
           </Text>
 
           <View style={styles.groupList}>
-            {GROUPS_MOCK.map((group) => (
+            {GROUPS.map((group) => (
               <View key={group.name} style={styles.groupCard}>
                 <View style={styles.groupHeader}>
                   <View style={styles.groupHeaderCopy}>
