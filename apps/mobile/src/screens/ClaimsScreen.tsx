@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import type { ClaimDirection, CounterpartyKind, EntityId } from "@payment-divider/core";
+import type {
+  ClaimDirection,
+  CounterpartyKind,
+  EntityId,
+  PersonBalanceOverview,
+  PersonBalancePosition,
+} from "@payment-divider/core";
 
 import { formatMoney, useLedgerVersion } from "../data";
 import {
@@ -12,6 +18,7 @@ import {
   getClaimsOverview,
   getCounterparties,
   getOrCreateCounterparty,
+  getPersonBalanceOverview,
   recordClaimPayment,
   type ClaimListItem,
 } from "../data/claims-store";
@@ -57,6 +64,79 @@ function Chip({
     >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
     </Pressable>
+  );
+}
+
+function positionLabel(position: PersonBalancePosition): string {
+  if (position.sourceType === "group_balance") {
+    const groupName =
+      MOCK_GROUPS.find((group) => group.id === position.sourceId)?.name ?? position.sourceId;
+    return `Gruppensaldo ${groupName}`;
+  }
+  return position.label ?? "Forderung ohne Zweck";
+}
+
+// One person row: net summary up front, gross positions on demand. Closed
+// positions stay reachable as history but never count into the net.
+function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View style={styles.personRow}>
+      <Pressable accessibilityRole="button" onPress={() => setExpanded(!expanded)}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.claimName}>
+            {overview.counterpartyName} {expanded ? "▾" : "▸"}
+          </Text>
+          <Text
+            style={[styles.claimAmount, overview.netAmount < 0 && styles.amountNegative]}
+          >
+            {overview.netAmount >= 0
+              ? `+${formatMoney(overview.netAmount)}`
+              : `-${formatMoney(Math.abs(overview.netAmount))}`}
+          </Text>
+        </View>
+        <Text style={styles.claimMeta}>
+          {overview.netAmount > 0
+            ? "bekommst du netto"
+            : overview.netAmount < 0
+              ? "schuldest du netto"
+              : "ausgeglichen"}
+          {" · "}
+          {formatMoney(overview.openOwedToMe)} offen für dich · {formatMoney(overview.openOwedByMe)}
+          {" "}offen von dir
+        </Text>
+      </Pressable>
+      {expanded ? (
+        <View style={styles.detailBlock}>
+          {overview.openPositions.map((position) => (
+            <Text
+              key={`${position.sourceType}:${position.sourceId}:${position.direction}`}
+              style={styles.detailLine}
+            >
+              {position.direction === "owed_to_me" ? "+" : "-"}
+              {formatMoney(position.amount)} · {positionLabel(position)}
+              {position.sourceType === "private_claim" ? " · Forderung" : ""}
+            </Text>
+          ))}
+          {overview.closedPositions.length > 0 ? (
+            <>
+              <Text style={styles.detailTitle}>
+                Verlauf ({overview.closedPositions.length} abgeschlossen)
+              </Text>
+              {overview.closedPositions.map((position) => (
+                <Text
+                  key={`closed:${position.sourceType}:${position.sourceId}:${position.direction}`}
+                  style={styles.detailLine}
+                >
+                  {formatMoney(position.amount)} · {positionLabel(position)} · erledigt
+                </Text>
+              ))}
+            </>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -196,6 +276,11 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
 export function ClaimsScreen() {
   useLedgerVersion();
   const overview = getClaimsOverview();
+  // Rows with only closed positions stay listed so the history remains reachable.
+  const personOverviews = getPersonBalanceOverview().filter(
+    (personOverview) =>
+      personOverview.openPositions.length > 0 || personOverview.closedPositions.length > 0,
+  );
   const [showClosed, setShowClosed] = useState(false);
   const [name, setName] = useState("");
   const [amountText, setAmountText] = useState("");
@@ -255,28 +340,20 @@ export function ClaimsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Pro Person</Text>
         <View style={styles.sectionCard}>
-          {overview.summaries.length === 0 ? (
+          {personOverviews.length === 0 ? (
             <Text style={styles.detailLine}>Keine offenen Positionen.</Text>
           ) : (
-            overview.summaries.map((summary) => (
-              <View key={`${summary.currency}:${summary.counterpartyKey}`} style={styles.summaryRow}>
-                <Text style={styles.claimName}>{summary.counterpartyName}</Text>
-                <Text
-                  style={[
-                    styles.claimAmount,
-                    summary.netAmount < 0 && styles.amountNegative,
-                  ]}
-                >
-                  {summary.netAmount >= 0
-                    ? `+${formatMoney(summary.netAmount)}`
-                    : `-${formatMoney(Math.abs(summary.netAmount))}`}
-                </Text>
-              </View>
+            personOverviews.map((personOverview) => (
+              <PersonOverviewRow
+                key={`${personOverview.currency}:${personOverview.counterpartyId}`}
+                overview={personOverview}
+              />
             ))
           )}
         </View>
         <Text style={styles.compactHint}>
-          Offene private Forderungen und Schulden, netto pro Person. Gruppensalden bleiben getrennt.
+          Private Forderungen und Gruppensalden pro Person: Einzelpositionen bleiben sichtbar,
+          netto ist nur die Zusammenfassung. Abgeschlossenes wandert in den Verlauf.
         </Text>
       </View>
 
@@ -429,6 +506,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "baseline",
     gap: 12,
+  },
+  personRow: {
+    gap: 6,
   },
   claimCard: {
     padding: 16,

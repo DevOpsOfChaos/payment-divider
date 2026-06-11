@@ -23,7 +23,7 @@ import {
 const DEFAULT_CURRENCY: CurrencyCode = "EUR";
 
 // Built per call so session-local Record drafts flow into every derived balance.
-function getBalanceInput() {
+export function getBalanceInput() {
   return {
     expenses: [...MOCK_EXPENSES, ...getDraftExpenses()],
     expenseShares: [...MOCK_EXPENSE_SHARES, ...getDraftExpenseShares()],
