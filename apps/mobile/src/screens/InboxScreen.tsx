@@ -14,8 +14,6 @@ import {
 } from "../data";
 import type { InboxItemMock } from "../mock-data/inbox";
 
-const INBOX = appRepositories.getInbox();
-
 const SETTLEMENT_ACTION_LABELS: Record<SettlementActionKind, string> = {
   mark_paid: "als extern erledigt markieren",
   confirm: "bestätigen",
@@ -93,6 +91,7 @@ function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock
 
 export function InboxScreen() {
   useLedgerVersion();
+  const INBOX = appRepositories.getInbox();
   const settlementItems = appRepositories.getSettlementItems();
 
   return (
