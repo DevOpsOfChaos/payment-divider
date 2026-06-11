@@ -65,6 +65,10 @@ corepack pnpm db:boundary-check
 
 It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbidden terms appear outside clearly marked exclusion comments.
 
+## Continuous integration
+
+`.github/workflows/checks.yml` runs the boundary check, typecheck, tests, lint, and whitespace hygiene on every pull request and push to `main`. CI uses no secrets and never connects to a Supabase project; Docker-based `db lint`/`db reset` stay a local workflow.
+
 These shell out to the `supabase` binary and fail with a clear error if it is not installed.
 
 ## When Docker is needed
