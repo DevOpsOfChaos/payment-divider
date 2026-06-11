@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { GROUP_DETAIL_SCREEN_MOCK } from "../mock-data/group-detail";
-import type { BalanceTone } from "../mock-data/groups";
+import { appRepositories, type BalanceTone } from "../data";
+
+const GROUP_DETAIL = appRepositories.getGroupDetail();
 
 function getBalanceStyle(tone: BalanceTone) {
   switch (tone) {
@@ -19,26 +20,26 @@ function getBalanceStyle(tone: BalanceTone) {
 export function GroupDetailScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>{GROUP_DETAIL_SCREEN_MOCK.title}</Text>
-      <Text style={styles.screenPurpose}>{GROUP_DETAIL_SCREEN_MOCK.subtitle}</Text>
+      <Text style={styles.screenTitle}>{GROUP_DETAIL.title}</Text>
+      <Text style={styles.screenPurpose}>{GROUP_DETAIL.subtitle}</Text>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.eyebrow}>{GROUP_DETAIL_SCREEN_MOCK.balanceTitle}</Text>
+        <Text style={styles.eyebrow}>{GROUP_DETAIL.balanceTitle}</Text>
         <Text
           style={[
             styles.balanceSummary,
-            getBalanceStyle(GROUP_DETAIL_SCREEN_MOCK.balanceTone),
+            getBalanceStyle(GROUP_DETAIL.balanceTone),
           ]}
         >
-          {GROUP_DETAIL_SCREEN_MOCK.balanceSummary}
+          {GROUP_DETAIL.balanceSummary}
         </Text>
-        <Text style={styles.helperText}>{GROUP_DETAIL_SCREEN_MOCK.balanceHint}</Text>
+        <Text style={styles.helperText}>{GROUP_DETAIL.balanceHint}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{GROUP_DETAIL_SCREEN_MOCK.activitiesTitle}</Text>
+        <Text style={styles.sectionTitle}>{GROUP_DETAIL.activitiesTitle}</Text>
         <View style={styles.sectionList}>
-          {GROUP_DETAIL_SCREEN_MOCK.activities.map((activity) => (
+          {GROUP_DETAIL.activities.map((activity) => (
             <View key={activity.name} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>{activity.name}</Text>
@@ -61,10 +62,10 @@ export function GroupDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{GROUP_DETAIL_SCREEN_MOCK.membersTitle}</Text>
-        <Text style={styles.sectionHint}>{GROUP_DETAIL_SCREEN_MOCK.membersHint}</Text>
+        <Text style={styles.sectionTitle}>{GROUP_DETAIL.membersTitle}</Text>
+        <Text style={styles.sectionHint}>{GROUP_DETAIL.membersHint}</Text>
         <View style={styles.sectionList}>
-          {GROUP_DETAIL_SCREEN_MOCK.members.map((member) => (
+          {GROUP_DETAIL.members.map((member) => (
             <View key={member.name} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>{member.name}</Text>
@@ -83,10 +84,10 @@ export function GroupDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{GROUP_DETAIL_SCREEN_MOCK.timelineTitle}</Text>
-        <Text style={styles.sectionHint}>{GROUP_DETAIL_SCREEN_MOCK.timelineHint}</Text>
+        <Text style={styles.sectionTitle}>{GROUP_DETAIL.timelineTitle}</Text>
+        <Text style={styles.sectionHint}>{GROUP_DETAIL.timelineHint}</Text>
         <View style={styles.sectionList}>
-          {GROUP_DETAIL_SCREEN_MOCK.timeline.map((item) => (
+          {GROUP_DETAIL.timeline.map((item) => (
             <View key={`${item.actor}-${item.event}-${item.dateLabel}`} style={styles.listCard}>
               <View style={styles.rowHeader}>
                 <Text style={styles.rowTitle}>
@@ -101,9 +102,9 @@ export function GroupDetailScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{GROUP_DETAIL_SCREEN_MOCK.quickActionsTitle}</Text>
+        <Text style={styles.sectionTitle}>{GROUP_DETAIL.quickActionsTitle}</Text>
         <View style={styles.actionGrid}>
-          {GROUP_DETAIL_SCREEN_MOCK.quickActions.map((action) => (
+          {GROUP_DETAIL.quickActions.map((action) => (
             <View key={action.label} style={styles.actionPill}>
               <Text style={styles.actionText}>{action.label}</Text>
             </View>

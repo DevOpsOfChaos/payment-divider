@@ -1,12 +1,14 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import {
-  PROFILE_SCREEN_MOCK,
-  type PaymentControlMock,
-  type PrivacyNoteMock,
-  type ProfileIdentityRowMock,
-  type VisibilityProfileMock,
+import { appRepositories } from "../data";
+import type {
+  PaymentControlMock,
+  PrivacyNoteMock,
+  ProfileIdentityRowMock,
+  VisibilityProfileMock,
 } from "../mock-data/profile";
+
+const PROFILE = appRepositories.getProfile();
 
 function IdentityRow({ label, value }: ProfileIdentityRowMock) {
   return (
@@ -50,13 +52,13 @@ function PrivacyNoteRow({ title, detail }: PrivacyNoteMock) {
 export function ProfileScreen() {
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>{PROFILE_SCREEN_MOCK.title}</Text>
-      <Text style={styles.screenPurpose}>{PROFILE_SCREEN_MOCK.subtitle}</Text>
+      <Text style={styles.screenTitle}>{PROFILE.title}</Text>
+      <Text style={styles.screenPurpose}>{PROFILE.subtitle}</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Identität</Text>
         <View style={styles.sectionCard}>
-          {PROFILE_SCREEN_MOCK.identity.map((entry) => (
+          {PROFILE.identity.map((entry) => (
             <IdentityRow key={entry.label} {...entry} />
           ))}
         </View>
@@ -65,7 +67,7 @@ export function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sichtbarkeitsprofile</Text>
         <View style={styles.sectionList}>
-          {PROFILE_SCREEN_MOCK.visibilityProfiles.map((profile) => (
+          {PROFILE.visibilityProfiles.map((profile) => (
             <VisibilityCard key={profile.name} {...profile} />
           ))}
         </View>
@@ -74,7 +76,7 @@ export function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Zahlungsdaten später verwalten</Text>
         <View style={styles.sectionCard}>
-          {PROFILE_SCREEN_MOCK.paymentControls.map((entry) => (
+          {PROFILE.paymentControls.map((entry) => (
             <PaymentControlRow key={entry.label} {...entry} />
           ))}
         </View>
@@ -83,16 +85,16 @@ export function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Datenschutz</Text>
         <View style={styles.sectionCard}>
-          {PROFILE_SCREEN_MOCK.privacyNotes.map((note) => (
+          {PROFILE.privacyNotes.map((note) => (
             <PrivacyNoteRow key={note.title} {...note} />
           ))}
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{PROFILE_SCREEN_MOCK.groupHintTitle}</Text>
+        <Text style={styles.sectionTitle}>{PROFILE.groupHintTitle}</Text>
         <View style={styles.highlightCard}>
-          <Text style={styles.highlightText}>{PROFILE_SCREEN_MOCK.groupHintDetail}</Text>
+          <Text style={styles.highlightText}>{PROFILE.groupHintDetail}</Text>
         </View>
       </View>
     </View>

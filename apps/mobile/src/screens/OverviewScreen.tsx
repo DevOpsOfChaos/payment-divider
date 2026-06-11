@@ -1,15 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import {
-  DEBTS_MOCK,
-  GROUP_ATTENTION_MOCK,
-  OPEN_ACTIONS_MOCK,
-  OVERVIEW_BALANCE_MOCK,
-  RECEIVABLES_MOCK,
-  RECENT_ACTIVITY_MOCK,
-  type OverviewBalanceRowMock,
-} from "../mock-data/overview";
-import type { BalanceTone } from "../mock-data/groups";
+import { appRepositories, type BalanceTone, type OverviewData } from "../data";
+
+type OverviewBalanceRow = OverviewData["receivables"][number];
 
 function getBalanceStyle(tone: BalanceTone) {
   switch (tone) {
@@ -24,7 +17,7 @@ function getBalanceStyle(tone: BalanceTone) {
   }
 }
 
-function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRowMock) {
+function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRow) {
   return (
     <View style={styles.listRow}>
       <View style={styles.listRowCopy}>
@@ -40,6 +33,8 @@ function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRowMo
 }
 
 export function OverviewScreen() {
+  const overview = appRepositories.getOverview();
+
   return (
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>Übersicht</Text>
@@ -49,20 +44,20 @@ export function OverviewScreen() {
       </Text>
 
       <View style={styles.balanceCard}>
-        <Text style={styles.eyebrow}>{OVERVIEW_BALANCE_MOCK.heading}</Text>
+        <Text style={styles.eyebrow}>{overview.balance.heading}</Text>
         <Text
-          style={[styles.balanceAmount, getBalanceStyle(OVERVIEW_BALANCE_MOCK.tone)]}
+          style={[styles.balanceAmount, getBalanceStyle(overview.balance.tone)]}
         >
-          {OVERVIEW_BALANCE_MOCK.amountLabel}
+          {overview.balance.amountLabel}
         </Text>
-        <Text style={styles.helperText}>{OVERVIEW_BALANCE_MOCK.helperText}</Text>
-        <Text style={styles.balanceBreakdown}>{OVERVIEW_BALANCE_MOCK.breakdown}</Text>
+        <Text style={styles.helperText}>{overview.balance.helperText}</Text>
+        <Text style={styles.balanceBreakdown}>{overview.balance.breakdown}</Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Du bekommst</Text>
         <View style={styles.sectionList}>
-          {RECEIVABLES_MOCK.map((entry) => (
+          {overview.receivables.map((entry) => (
             <BalanceRow key={`${entry.person}-${entry.source}`} {...entry} />
           ))}
         </View>
@@ -71,7 +66,7 @@ export function OverviewScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Du schuldest</Text>
         <View style={styles.sectionList}>
-          {DEBTS_MOCK.map((entry) => (
+          {overview.debts.map((entry) => (
             <BalanceRow key={`${entry.person}-${entry.source}`} {...entry} />
           ))}
         </View>
@@ -80,7 +75,7 @@ export function OverviewScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Offene Aktionen</Text>
         <View style={styles.sectionList}>
-          {OPEN_ACTIONS_MOCK.map((item) => (
+          {overview.openActions.map((item) => (
             <View key={item.label} style={styles.infoRow}>
               <Text style={styles.infoLabel}>{item.label}</Text>
               <Text style={styles.infoDetail}>{item.detail}</Text>
@@ -92,7 +87,7 @@ export function OverviewScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Letzte Aktivität</Text>
         <View style={styles.sectionList}>
-          {RECENT_ACTIVITY_MOCK.map((item) => (
+          {overview.recentActivity.map((item) => (
             <View key={`${item.actor}-${item.event}-${item.dateLabel}`} style={styles.infoRow}>
               <View style={styles.timelineHeader}>
                 <Text style={styles.infoLabel}>
@@ -109,7 +104,7 @@ export function OverviewScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Gruppen mit Aufmerksamkeit</Text>
         <View style={styles.sectionList}>
-          {GROUP_ATTENTION_MOCK.map((item) => (
+          {overview.groupAttention.map((item) => (
             <View key={`${item.group}-${item.reason}`} style={styles.infoRow}>
               <View style={styles.timelineHeader}>
                 <Text style={styles.infoLabel}>{item.group}</Text>
