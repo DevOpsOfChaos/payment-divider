@@ -9,6 +9,9 @@
 --   4. payment_actions: payer may move suggested -> marked_paid,
 --      payer may NOT confirm, payee may confirm marked_paid.
 --   5. payment_actions: non-status columns are immutable (trigger).
+--   6. claims: free-text claims are creator-only; linked claims are visible to
+--      the counterparty, who may dispute but not edit amounts; claim payments
+--      keep their core fields immutable.
 
 begin;
 
@@ -187,6 +190,98 @@ begin
     when others then
       if sqlerrm like '%only status%' then
         raise notice 'PASS: payment action non-status columns are immutable';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+-- ----------------------------------------------------------- 6. claims ---
+
+-- A creates a free-text claim and a linked claim against B.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+insert into public.claims (id, creator_user_id, direction, counterparty_type, counterparty_name, amount_minor, currency_code, claim_date, status)
+values
+  ('00000000-0000-0000-0000-0000000000a2',
+   '00000000-0000-0000-0000-00000000000a',
+   'owed_to_me', 'free_text_person', 'Kiosk Karl', 700, 'EUR', '2026-06-11', 'private_open');
+
+insert into public.claims (id, creator_user_id, direction, counterparty_type, counterparty_user_id, counterparty_name, amount_minor, currency_code, claim_date, status)
+values
+  ('00000000-0000-0000-0000-0000000000a3',
+   '00000000-0000-0000-0000-00000000000a',
+   'owed_to_me', 'app_user', '00000000-0000-0000-0000-00000000000b', 'User B',
+   2000, 'EUR', '2026-06-11', 'linked_open');
+
+insert into public.claim_payments (id, claim_id, amount_minor, currency_code, payment_date, recorded_by)
+values
+  ('00000000-0000-0000-0000-0000000000a4',
+   '00000000-0000-0000-0000-0000000000a3',
+   500, 'EUR', '2026-06-11', '00000000-0000-0000-0000-00000000000a');
+
+select pg_temp.assert(
+  (select count(*) from public.claims) = 2,
+  'creator A sees both own claims');
+reset role;
+
+-- Linked counterparty B sees only the linked claim, not the free-text one.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+select pg_temp.assert(
+  (select count(*) from public.claims) = 1
+    and exists (select 1 from public.claims where counterparty_name = 'User B'),
+  'counterparty B sees only the linked claim');
+
+-- B may dispute the linked claim.
+with updated as (
+  update public.claims
+  set status = 'disputed'
+  where id = '00000000-0000-0000-0000-0000000000a3'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 1,
+  'counterparty B may dispute the linked claim');
+
+-- B may not change the claim amount (trigger).
+do $$
+begin
+  begin
+    update public.claims
+    set amount_minor = 1
+    where id = '00000000-0000-0000-0000-0000000000a3';
+    raise exception 'FAIL: counterparty could change the claim amount';
+  exception
+    when others then
+      if sqlerrm like '%only change the status%' then
+        raise notice 'PASS: counterparty cannot change the claim amount';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+reset role;
+
+-- Outsider C sees no claims at all.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000c');
+select pg_temp.assert(
+  (select count(*) from public.claims) = 0,
+  'outsider C sees no claims');
+reset role;
+
+-- Claim payment core fields are immutable (trigger, runs as table owner too).
+do $$
+begin
+  begin
+    update public.claim_payments
+    set amount_minor = 9999
+    where id = '00000000-0000-0000-0000-0000000000a4';
+    raise exception 'FAIL: claim payment amount was mutable';
+  exception
+    when others then
+      if sqlerrm like '%confirmation state%' then
+        raise notice 'PASS: claim payment core fields are immutable';
       else
         raise;
       end if;

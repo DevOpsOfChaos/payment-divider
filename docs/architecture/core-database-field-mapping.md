@@ -29,6 +29,10 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 | `PaymentAction` | `payment_actions` |
 | `TimelineEvent` | `timeline_events` |
 | `InboxItem` | `inbox_items` |
+| `Claim` | `claims` |
+| `ClaimPayment` | `claim_payments` |
+| `ClaimEvent` | `claim_events` |
+| (reminder metadata, core type pending) | `claim_reminders` |
 
 ## Field mapping highlights
 
@@ -52,6 +56,11 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 | `PaymentAction.paymentMethodId` | — | deferred to MVP 1B; no payment-method storage exists in the schema |
 | `TimelineEvent.actorUserId` | `timeline_events.actor_user_id` | nullable in SQL (`on delete set null`); required in TS |
 | `InboxItem.relatedEntityType` | `inbox_items.related_entity_type` | nullable in SQL; required in TS |
+| `Claim.amount` | `claims.amount_minor` | integer minor units |
+| `Claim.currency` | `claims.currency_code` | |
+| `Claim.creatorUserId` | `claims.creator_user_id` | |
+| `Claim.counterpartyType` | `claims.counterparty_type` | `app_user` requires `counterparty_user_id`, others forbid it |
+| `ClaimPayment.confirmationStatus` | `claim_payments.confirmation_status` | `recorded / pending_confirmation / confirmed / rejected` |
 
 `payment_actions` remain ledger-only in both layers: status changes record what users marked or confirmed outside the app and never imply payment execution.
 
