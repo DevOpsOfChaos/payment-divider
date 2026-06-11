@@ -1,21 +1,80 @@
-import type { Claim, ClaimEvent, ClaimPayment } from "@payment-divider/core";
+import type { Claim, ClaimEvent, ClaimPayment, Counterparty } from "@payment-divider/core";
 
 import { MOCK_CURRENT_USER_ID, MOCK_GROUP_IDS, MOCK_USER_IDS } from "./ledger";
 
 const CREATED_AT = "2026-06-09T12:00:00.000Z";
 
-// Seed claims for the local demo (see docs/product/private-claims-v0.1.md).
-// Mix of linked, invited, and free-text counterparties plus one incoming
-// claim where the current user is the linked counterparty.
+// Seed counterparties and claims for the local demo
+// (see docs/product/private-claims-v0.1.md). Claims reference reusable
+// counterparty records instead of per-claim free-text names.
+
+export const MOCK_COUNTERPARTY_IDS = {
+  anna: "cp-anna",
+  jana: "cp-jana",
+  kioskKarl: "cp-kiosk-karl",
+  lukas: "cp-lukas",
+  // Lukas' own record pointing at the current user (incoming claim).
+  manuByLukas: "cp-manu-by-lukas",
+} as const;
+
+export const MOCK_COUNTERPARTIES: Counterparty[] = [
+  {
+    id: MOCK_COUNTERPARTY_IDS.anna,
+    ownerUserId: MOCK_CURRENT_USER_ID,
+    kind: "app_user",
+    displayName: "Anna",
+    normalizedName: "anna",
+    linkedUserId: MOCK_USER_IDS.anna,
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  },
+  {
+    id: MOCK_COUNTERPARTY_IDS.jana,
+    ownerUserId: MOCK_CURRENT_USER_ID,
+    kind: "invited_person",
+    displayName: "Jana",
+    normalizedName: "jana",
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  },
+  {
+    id: MOCK_COUNTERPARTY_IDS.kioskKarl,
+    ownerUserId: MOCK_CURRENT_USER_ID,
+    kind: "external_person",
+    displayName: "Kiosk Karl",
+    normalizedName: "kiosk karl",
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  },
+  {
+    id: MOCK_COUNTERPARTY_IDS.lukas,
+    ownerUserId: MOCK_CURRENT_USER_ID,
+    kind: "app_user",
+    displayName: "Lukas",
+    normalizedName: "lukas",
+    linkedUserId: MOCK_USER_IDS.lukas,
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  },
+  {
+    id: MOCK_COUNTERPARTY_IDS.manuByLukas,
+    ownerUserId: MOCK_USER_IDS.lukas,
+    kind: "app_user",
+    displayName: "Manu",
+    normalizedName: "manu",
+    linkedUserId: MOCK_CURRENT_USER_ID,
+    createdAt: CREATED_AT,
+    updatedAt: CREATED_AT,
+  },
+];
 
 export const MOCK_CLAIMS: Claim[] = [
   {
     id: "claim-anna-festival",
     creatorUserId: MOCK_CURRENT_USER_ID,
     direction: "owed_to_me",
-    counterpartyType: "app_user",
-    counterpartyUserId: MOCK_USER_IDS.anna,
-    counterpartyName: "Anna",
+    counterpartyId: MOCK_COUNTERPARTY_IDS.anna,
+    sharedWithCounterparty: true,
     amount: 4500,
     currency: "EUR",
     purpose: "Festival-Ticket ausgelegt",
@@ -30,8 +89,8 @@ export const MOCK_CLAIMS: Claim[] = [
     id: "claim-kiosk-karl",
     creatorUserId: MOCK_CURRENT_USER_ID,
     direction: "owed_to_me",
-    counterpartyType: "free_text_person",
-    counterpartyName: "Kiosk Karl",
+    counterpartyId: MOCK_COUNTERPARTY_IDS.kioskKarl,
+    sharedWithCounterparty: false,
     amount: 700,
     currency: "EUR",
     purpose: "Pfandflaschen verauslagt",
@@ -44,8 +103,8 @@ export const MOCK_CLAIMS: Claim[] = [
     id: "claim-invited-jana",
     creatorUserId: MOCK_CURRENT_USER_ID,
     direction: "owed_by_me",
-    counterpartyType: "invited_person",
-    counterpartyName: "Jana (einladen)",
+    counterpartyId: MOCK_COUNTERPARTY_IDS.jana,
+    sharedWithCounterparty: false,
     amount: 2500,
     currency: "EUR",
     purpose: "Konzertkarte, zahle ich zurück",
@@ -58,9 +117,8 @@ export const MOCK_CLAIMS: Claim[] = [
     id: "claim-incoming-lukas",
     creatorUserId: MOCK_USER_IDS.lukas,
     direction: "owed_to_me",
-    counterpartyType: "app_user",
-    counterpartyUserId: MOCK_CURRENT_USER_ID,
-    counterpartyName: "Manu",
+    counterpartyId: MOCK_COUNTERPARTY_IDS.manuByLukas,
+    sharedWithCounterparty: true,
     amount: 1200,
     currency: "EUR",
     purpose: "Pizza beim Spieleabend",

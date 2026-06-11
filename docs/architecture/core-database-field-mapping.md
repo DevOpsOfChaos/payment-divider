@@ -33,6 +33,8 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 | `ClaimPayment` | `claim_payments` |
 | `ClaimEvent` | `claim_events` |
 | (reminder metadata, core type pending) | `claim_reminders` |
+| `Counterparty` | `counterparties` |
+| `CounterpartyAlias` | `counterparty_aliases` |
 
 ## Field mapping highlights
 
@@ -59,7 +61,10 @@ Maps the shared domain types in `packages/core/src/domain-types.ts` to the SQL s
 | `Claim.amount` | `claims.amount_minor` | integer minor units |
 | `Claim.currency` | `claims.currency_code` | |
 | `Claim.creatorUserId` | `claims.creator_user_id` | |
-| `Claim.counterpartyType` | `claims.counterparty_type` | `app_user` requires `counterparty_user_id`, others forbid it |
+| `Claim.counterpartyId` | `claims.counterparty_id` | stable reference into `counterparties` |
+| `Claim.sharedWithCounterparty` | `claims.shared_with_counterparty` | creator-controlled privacy gate; linking never flips it |
+| `Counterparty.kind` | `counterparties.kind` | `app_user` requires `linked_user_id`, others forbid it |
+| `Counterparty.normalizedName` | `counterparties.normalized_name` | duplicate-suggestion basis |
 | `ClaimPayment.confirmationStatus` | `claim_payments.confirmation_status` | `recorded / pending_confirmation / confirmed / rejected` |
 
 `payment_actions` remain ledger-only in both layers: status changes record what users marked or confirmed outside the app and never imply payment execution.

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import type { ClaimCounterpartyType, ClaimDirection, EntityId } from "@payment-divider/core";
+import type { ClaimDirection, CounterpartyKind, EntityId } from "@payment-divider/core";
 
 import { formatMoney, useLedgerVersion } from "../data";
 import {
@@ -10,6 +10,8 @@ import {
   archiveClaim,
   disputeClaim,
   getClaimsOverview,
+  getCounterparties,
+  getOrCreateCounterparty,
   recordClaimPayment,
   type ClaimListItem,
 } from "../data/claims-store";
@@ -32,10 +34,10 @@ const LIFECYCLE_LABELS: Record<string, string> = {
   archived: "archiviert",
 };
 
-const COUNTERPARTY_LABELS: Record<ClaimCounterpartyType, string> = {
+const COUNTERPARTY_LABELS: Record<CounterpartyKind, string> = {
   app_user: "App-Kontakt",
   invited_person: "Einladung",
-  free_text_person: "Freitext",
+  external_person: "Extern",
 };
 
 function Chip({
@@ -63,22 +65,19 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
   const [paymentText, setPaymentText] = useState("");
   const { claim } = item;
 
-  const directionLabel = item.incoming
-    ? `${claim.counterpartyName === "Manu" ? "Du schuldest" : "Fordert von dir"}`
-    : claim.direction === "owed_to_me"
-      ? "schuldet dir"
-      : "du schuldest";
+  const directionLabel =
+    claim.direction === "owed_to_me" ? "schuldet dir" : "du schuldest";
   const counterpartyDisplay = item.incoming
     ? MOCK_USERS.find((user) => user.id === claim.creatorUserId)?.displayName ??
       claim.creatorUserId
-    : claim.counterpartyName;
+    : item.counterparty?.displayName ?? claim.counterpartyId;
   const groupName = claim.groupId
     ? MOCK_GROUPS.find((group) => group.id === claim.groupId)?.name
     : undefined;
   const paymentAmount = parseAmount(paymentText);
   const canReact =
     item.incoming &&
-    claim.counterpartyUserId === MOCK_CURRENT_USER_ID &&
+    item.counterparty?.linkedUserId === MOCK_CURRENT_USER_ID &&
     (claim.status === "linked_open" || claim.status === "disputed");
 
   return (
@@ -96,7 +95,9 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
           {groupName ? ` · ${groupName}` : ""}
         </Text>
         <View style={styles.badgeRow}>
-          <Text style={styles.badge}>{COUNTERPARTY_LABELS[claim.counterpartyType]}</Text>
+          {item.counterparty ? (
+            <Text style={styles.badge}>{COUNTERPARTY_LABELS[item.counterparty.kind]}</Text>
+          ) : null}
           <Text style={styles.badge}>{LIFECYCLE_LABELS[item.lifecycle]}</Text>
           {!item.linked ? <Text style={styles.badge}>nur lokal · privat</Text> : null}
           {item.remaining < claim.amount ? (
@@ -200,13 +201,17 @@ export function ClaimsScreen() {
   const [amountText, setAmountText] = useState("");
   const [purpose, setPurpose] = useState("");
   const [direction, setDirection] = useState<ClaimDirection>("owed_to_me");
-  const [counterpartyType, setCounterpartyType] =
-    useState<ClaimCounterpartyType>("free_text_person");
-  const [contactUserId, setContactUserId] = useState<EntityId | undefined>(undefined);
+  const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<EntityId | undefined>(
+    undefined,
+  );
+  const [newPersonKind, setNewPersonKind] = useState<
+    "invited_person" | "external_person"
+  >("external_person");
   const [groupId, setGroupId] = useState<EntityId | undefined>(undefined);
   const [formError, setFormError] = useState<string | undefined>(undefined);
 
-  const contacts = MOCK_USERS.filter((user) => user.id !== MOCK_CURRENT_USER_ID);
+  // Existing reusable person records: pick one or create a new private one.
+  const existingCounterparties = getCounterparties();
 
   function save() {
     const amount = parseAmount(amountText);
@@ -214,21 +219,22 @@ export function ClaimsScreen() {
       setFormError("Betrag muss größer als 0 sein.");
       return;
     }
-    const contact = contacts.find((user) => user.id === contactUserId);
-    if (counterpartyType === "app_user" && !contact) {
-      setFormError("App-Kontakt wählen.");
-      return;
-    }
-    if (counterpartyType !== "app_user" && name.trim().length === 0) {
-      setFormError("Name erforderlich.");
-      return;
+
+    let counterpartyId = selectedCounterpartyId;
+    if (!counterpartyId) {
+      if (name.trim().length === 0) {
+        setFormError("Vorhandene Person wählen oder Name eingeben.");
+        return;
+      }
+      counterpartyId = getOrCreateCounterparty({
+        kind: newPersonKind,
+        displayName: name.trim(),
+      }).id;
     }
 
     addClaim({
       direction,
-      counterpartyType,
-      counterpartyUserId: contact?.id,
-      counterpartyName: counterpartyType === "app_user" ? contact!.displayName : name.trim(),
+      counterpartyId,
       amount,
       purpose: purpose.trim() || undefined,
       groupId,
@@ -290,39 +296,43 @@ export function ClaimsScreen() {
             />
           </View>
           <View style={styles.chipRow}>
-            {(Object.keys(COUNTERPARTY_LABELS) as ClaimCounterpartyType[]).map((type) => (
+            {existingCounterparties.map((counterparty) => (
               <Chip
-                key={type}
-                label={COUNTERPARTY_LABELS[type]}
-                active={counterpartyType === type}
-                onPress={() => setCounterpartyType(type)}
+                key={counterparty.id}
+                label={`${counterparty.displayName} · ${COUNTERPARTY_LABELS[counterparty.kind]}`}
+                active={selectedCounterpartyId === counterparty.id}
+                onPress={() => setSelectedCounterpartyId(counterparty.id)}
               />
             ))}
-          </View>
-          {counterpartyType === "app_user" ? (
-            <View style={styles.chipRow}>
-              {contacts.map((user) => (
-                <Chip
-                  key={user.id}
-                  label={user.displayName}
-                  active={contactUserId === user.id}
-                  onPress={() => setContactUserId(user.id)}
-                />
-              ))}
-            </View>
-          ) : (
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder={
-                counterpartyType === "invited_person"
-                  ? "Name (später einladen)"
-                  : "Name (bleibt privat)"
-              }
-              accessibilityLabel="Name"
+            <Chip
+              label="Neue Person"
+              active={selectedCounterpartyId === undefined}
+              onPress={() => setSelectedCounterpartyId(undefined)}
             />
-          )}
+          </View>
+          {selectedCounterpartyId === undefined ? (
+            <>
+              <View style={styles.chipRow}>
+                <Chip
+                  label="Extern (bleibt privat)"
+                  active={newPersonKind === "external_person"}
+                  onPress={() => setNewPersonKind("external_person")}
+                />
+                <Chip
+                  label="Einladung (später verknüpfen)"
+                  active={newPersonKind === "invited_person"}
+                  onPress={() => setNewPersonKind("invited_person")}
+                />
+              </View>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Name · wird als Person wiederverwendbar gespeichert"
+                accessibilityLabel="Name"
+              />
+            </>
+          ) : null}
           <TextInput
             style={styles.input}
             value={amountText}

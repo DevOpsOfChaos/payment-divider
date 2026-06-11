@@ -199,20 +199,33 @@ $$;
 
 -- ----------------------------------------------------------- 6. claims ---
 
--- A creates a free-text claim and a linked claim against B.
+-- A creates counterparties: an external person, a linked app_user record for
+-- B (shared claim), and another linked record whose claim stays unshared.
 select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
-insert into public.claims (id, creator_user_id, direction, counterparty_type, counterparty_name, amount_minor, currency_code, claim_date, status)
+insert into public.counterparties (id, owner_user_id, kind, display_name, normalized_name, linked_user_id)
+values
+  ('00000000-0000-0000-0000-0000000000b1',
+   '00000000-0000-0000-0000-00000000000a', 'external_person', 'Kiosk Karl', 'kiosk karl', null),
+  ('00000000-0000-0000-0000-0000000000b2',
+   '00000000-0000-0000-0000-00000000000a', 'app_user', 'User B', 'user b',
+   '00000000-0000-0000-0000-00000000000b');
+
+insert into public.claims (id, creator_user_id, direction, counterparty_id, shared_with_counterparty, amount_minor, currency_code, claim_date, status)
 values
   ('00000000-0000-0000-0000-0000000000a2',
    '00000000-0000-0000-0000-00000000000a',
-   'owed_to_me', 'free_text_person', 'Kiosk Karl', 700, 'EUR', '2026-06-11', 'private_open');
-
-insert into public.claims (id, creator_user_id, direction, counterparty_type, counterparty_user_id, counterparty_name, amount_minor, currency_code, claim_date, status)
-values
+   'owed_to_me', '00000000-0000-0000-0000-0000000000b1', false,
+   700, 'EUR', '2026-06-11', 'private_open'),
   ('00000000-0000-0000-0000-0000000000a3',
    '00000000-0000-0000-0000-00000000000a',
-   'owed_to_me', 'app_user', '00000000-0000-0000-0000-00000000000b', 'User B',
-   2000, 'EUR', '2026-06-11', 'linked_open');
+   'owed_to_me', '00000000-0000-0000-0000-0000000000b2', true,
+   2000, 'EUR', '2026-06-11', 'linked_open'),
+  -- Same linked counterparty, but the creator did NOT share this claim:
+  -- simulates an old private note after the person was linked later.
+  ('00000000-0000-0000-0000-0000000000a5',
+   '00000000-0000-0000-0000-00000000000a',
+   'owed_to_me', '00000000-0000-0000-0000-0000000000b2', false,
+   900, 'EUR', '2026-06-11', 'private_open');
 
 insert into public.claim_payments (id, claim_id, amount_minor, currency_code, payment_date, recorded_by)
 values
@@ -221,16 +234,23 @@ values
    500, 'EUR', '2026-06-11', '00000000-0000-0000-0000-00000000000a');
 
 select pg_temp.assert(
-  (select count(*) from public.claims) = 2,
-  'creator A sees both own claims');
+  (select count(*) from public.claims) = 3,
+  'creator A sees all three own claims');
 reset role;
 
--- Linked counterparty B sees only the linked claim, not the free-text one.
+-- Linked counterparty B sees only the explicitly shared claim: not the
+-- free-text claim, and not the unshared claim against the linked record.
 select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
 select pg_temp.assert(
   (select count(*) from public.claims) = 1
-    and exists (select 1 from public.claims where counterparty_name = 'User B'),
-  'counterparty B sees only the linked claim');
+    and exists (select 1 from public.claims
+                where id = '00000000-0000-0000-0000-0000000000a3'),
+  'counterparty B sees only the shared linked claim');
+
+-- Linking never exposes the owner''s counterparty records themselves.
+select pg_temp.assert(
+  (select count(*) from public.counterparties) = 0,
+  'counterparty B cannot see A''s counterparty records');
 
 -- B may dispute the linked claim.
 with updated as (

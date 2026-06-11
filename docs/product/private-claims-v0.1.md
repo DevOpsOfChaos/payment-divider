@@ -23,6 +23,29 @@ A claim starts in whichever type fits and may upgrade later
 (`free_text_person` → `invited_person` → `app_user`); downgrades are not
 supported, only archiving.
 
+### Central counterparty layer (since #88)
+
+Counterparties are reusable, owner-private person records (`counterparties`
+table, `Counterparty` core type) with kinds `app_user`, `invited_person`,
+`external_person` (the former per-claim `free_text_person`). Claims reference
+a counterparty by id instead of storing raw names; reusing the same external
+person across claims aggregates cleanly in the per-person summary.
+
+Linking rules:
+
+- An external/invited person can later be linked to an app user
+  (`linkCounterpartyToUser`); existing claims keep working unchanged.
+- Linking NEVER auto-exposes old private claims: every claim carries a
+  `sharedWithCounterparty` flag, and only the creator can flip it per claim.
+  After linking, the creator actively decides which open claims to offer/share.
+- New claims against an already linked counterparty default to shared.
+- The counterparty record itself stays visible to its owner only — a linked
+  app user sees shared claims, never the owner's address-book entry.
+
+Aliases (`counterparty_aliases`) and normalized names prepare duplicate
+suggestions ("Max", "max", "Max Müller"). Suggestions never merge
+automatically; merging is a future, explicitly user-confirmed flow.
+
 ## Direction
 
 Both directions are first-class:
