@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { splitExpenseEqually, type EntityId } from "@payment-divider/core";
 
 import {
-  addDraftExpense,
   appRepositories,
   formatMoney,
+  getDataSourceMode,
   getDraftExpenses,
   useLedgerVersion,
   type RecordParticipantOption,
@@ -56,7 +56,12 @@ function buildInitialSelection(setup: RecordSetupData): Set<EntityId> {
 }
 
 export function RecordScreen() {
-  const setup = useMemo(() => appRepositories.getRecordSetup(), []);
+  const ledgerVersion = useLedgerVersion();
+  const setup = useMemo(
+    () => appRepositories.getRecordSetup(),
+    // Re-derive when local drafts or remote supabase-local data change.
+    [ledgerVersion],
+  );
   const [amountText, setAmountText] = useState("");
   const [title, setTitle] = useState("");
   const [payerUserId, setPayerUserId] = useState<EntityId>(setup.defaultPayerUserId);
@@ -64,8 +69,17 @@ export function RecordScreen() {
     buildInitialSelection(setup),
   );
   const [showErrors, setShowErrors] = useState(false);
-  useLedgerVersion();
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | undefined>(undefined);
   const drafts = getDraftExpenses();
+
+  // When the underlying context switches (e.g. supabase-local data arrives),
+  // reset payer and participant selection to the new setup defaults.
+  useEffect(() => {
+    setPayerUserId(setup.defaultPayerUserId);
+    setSelectedUserIds(buildInitialSelection(setup));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setup.contextId]);
 
   const amountMinor = parseGermanAmountToMinor(amountText);
   const selectedParticipants = setup.participants.filter((participant) =>
@@ -110,47 +124,34 @@ export function RecordScreen() {
     });
   }
 
-  function saveDraft() {
+  async function saveDraft() {
     if (errors.length > 0 || amountMinor === undefined) {
       setShowErrors(true);
       return;
     }
 
-    const draftId = `draft-${Date.now()}-${drafts.length}`;
-    const nowIso = new Date().toISOString();
-    const shares = splitExpenseEqually({
-      amount: amountMinor,
-      currency: setup.currency,
-      participantUserIds: selectedParticipants.map((participant) => participant.userId),
-    });
-
-    addDraftExpense({
-      expense: {
-        id: draftId,
+    setSaving(true);
+    try {
+      const result = await appRepositories.createExpense({
         groupId: setup.groupId,
         contextId: setup.contextId,
-        amount: amountMinor,
+        amountMinor,
         currency: setup.currency,
         paidByUserId: payerUserId,
         date: setup.expenseDate,
         title: title.trim() || "Ausgabe",
-        createdBy: payerUserId,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      },
-      shares: shares.map((share) => ({
-        id: `${draftId}-${share.userId}`,
-        expenseId: draftId,
-        userId: share.userId,
-        shareType: "equal",
-        amount: share.amount,
-        currency: share.currency,
-      })),
-    });
-    setAmountText("");
-    setTitle("");
-    setSelectedUserIds(buildInitialSelection(setup));
-    setShowErrors(false);
+        participantUserIds: selectedParticipants.map((participant) => participant.userId),
+      });
+      setSaveMessage(result.message);
+      if (result.ok) {
+        setAmountText("");
+        setTitle("");
+        setSelectedUserIds(buildInitialSelection(setup));
+        setShowErrors(false);
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   const activeParticipants = setup.participants.filter((participant) => !participant.paused);
@@ -261,9 +262,20 @@ export function RecordScreen() {
         </View>
       ) : null}
 
-      <Pressable accessibilityRole="button" onPress={saveDraft} style={styles.saveButton}>
-        <Text style={styles.saveButtonText}>Ausgabe lokal speichern</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={saving}
+        onPress={() => void saveDraft()}
+        style={styles.saveButton}
+      >
+        <Text style={styles.saveButtonText}>
+          {getDataSourceMode() === "supabase-local"
+            ? "Ausgabe lokal in Supabase speichern"
+            : "Ausgabe lokal speichern"}
+        </Text>
       </Pressable>
+
+      {saveMessage ? <Text style={styles.compactHint}>{saveMessage}</Text> : null}
 
       {drafts.length > 0 ? (
         <View style={styles.section}>

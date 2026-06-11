@@ -90,6 +90,36 @@ export interface ProfileRepository {
   getProfile(): ProfileScreenMock;
 }
 
+export interface WriteResult {
+  ok: boolean;
+  message: string;
+}
+
+export interface CreateGroupInput {
+  name: string;
+  type: string;
+  defaultCurrency: CurrencyCode;
+}
+
+export interface CreateExpenseInput {
+  groupId: EntityId;
+  contextId: EntityId;
+  amountMinor: number;
+  currency: CurrencyCode;
+  paidByUserId: EntityId;
+  date: ISODateString;
+  title?: string;
+  participantUserIds: EntityId[];
+}
+
+// Ledger-only writes: groups, default activity, creator membership, expenses
+// with shares, and timeline events. Never payment execution or payment-method
+// storage.
+export interface LedgerWriteRepository {
+  createGroup(input: CreateGroupInput): Promise<WriteResult>;
+  createExpense(input: CreateExpenseInput): Promise<WriteResult>;
+}
+
 export interface AppRepositories
   extends OverviewRepository,
     GroupsRepository,
@@ -97,4 +127,5 @@ export interface AppRepositories
     ActivityDetailRepository,
     RecordRepository,
     InboxRepository,
-    ProfileRepository {}
+    ProfileRepository,
+    LedgerWriteRepository {}
