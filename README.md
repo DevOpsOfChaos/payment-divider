@@ -52,7 +52,7 @@ Demo walkthrough: `docs/development/demo-script.md`.
 - Mobile app: local Expo demo over a repository data layer; Record is interactive and local drafts plus settlement actions feed the session balances and timelines.
 - CI runs boundary, typecheck, test, and lint checks on every PR.
 
-Full audit: `docs/product/mvp1a-readiness.md`.
+Full audits: `docs/product/mvp1a-readiness.md` (ledger demo) and `docs/product/alpha-readiness.md` (data modes, supabase-local, RLS tests).
 
 ## Known limitations
 
