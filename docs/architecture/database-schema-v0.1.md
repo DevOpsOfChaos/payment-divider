@@ -46,6 +46,16 @@ A further migration (`20260611120000_payment_action_status_transitions.sql`) ena
 
 Still deferred until the corresponding application flows are designed: membership changes beyond creation, availability edits, inbox resolution updates, and all delete policies.
 
+## Private claims (MVP 1B)
+
+The migration `20260611140000_private_claims_schema.sql` adds `claims`, `claim_payments`, `claim_events`, and `claim_reminders` per `docs/product/private-claims-v0.1.md`:
+
+- Claims are notes between a creator and one counterparty (`app_user`, `invited_person`, or `free_text_person`); check constraints tie `counterparty_user_id` to the `app_user` type and forbid self-claims.
+- Amounts use `amount_minor`/`currency_code` like the rest of the ledger; optional `group_id`/`context_id` link a claim to group data without affecting group balances.
+- RLS: the creator sees their own claims; a linked app-user counterparty sees exactly the claims they are part of; invited/free-text claims stay creator-only. Payments, events, and reminders follow the claim via `is_claim_participant`/`is_claim_creator` security-definer helpers; reminders are additionally own-user only.
+- Triggers keep the ledger honest: the counterparty may only change the claim status (acknowledge, dispute, clarify, mark paid), and claim-payment rows are immutable except for their confirmation state (timestamps auto-filled).
+- No payment execution, no provider fields, no payment-method storage; claim deletes are deferred like all other delete policies.
+
 `payment_actions` remain ledger-only records. They do not initiate payments, connect providers, hold funds, import bank data, verify external settlement, or store payment methods.
 
 Payment methods, visibility profiles, receipts, location data, storage buckets, offline sync, and provider-specific behavior remain out of the MVP 1A schema.

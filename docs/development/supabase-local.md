@@ -71,14 +71,14 @@ The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PU
 
 ## RLS behavior smoke tests
 
-`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, and column immutability via the transition trigger. The whole test runs in one transaction and rolls back, leaving the database clean.
+`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, and private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores). The whole test runs in one transaction and rolls back, leaving the database clean.
 
 ```powershell
 npx supabase db start
-corepack pnpm db:rls-test   # 9 assertions, runs psql inside the local db container
+corepack pnpm db:rls-test   # 15 assertions, runs psql inside the local db container
 ```
 
-Last run 2026-06-11: 9/9 PASS.
+Last run 2026-06-11: 15/15 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000).
 
 ## Continuous integration
 
