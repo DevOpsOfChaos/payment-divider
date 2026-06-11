@@ -1,6 +1,7 @@
 import type { BalanceTone } from "./groups";
 import { getActivityBalanceSummary, getGroupBalanceSummary } from "./balance-derived";
 import { MOCK_CONTEXT_IDS, MOCK_GROUP_IDS } from "./ledger";
+import { getDraftExpenses } from "../data/local-ledger";
 
 export interface GroupDetailActivityMock {
   name: string;
@@ -46,21 +47,28 @@ export interface GroupDetailScreenMock {
   quickActions: GroupQuickActionMock[];
 }
 
-const groupBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
-const generalBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.friendsGeneral,
-);
-const amsterdamBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.amsterdam,
-);
-const festivalBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.festival,
-);
+export function buildGroupDetailMock(): GroupDetailScreenMock {
+  const groupBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
+  const generalBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.friendsGeneral,
+  );
+  const amsterdamBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.amsterdam,
+  );
+  const festivalBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.festival,
+  );
+  const draftTimeline: GroupTimelineItemMock[] = getDraftExpenses().map((draft) => ({
+    actor: "Du",
+    event: `hast ${draft.title ?? "Ausgabe"} als Demo-Draft hinzugefügt`,
+    source: "Amsterdam 2026 · nur lokal",
+    dateLabel: "Jetzt",
+  }));
 
-export const GROUP_DETAIL_SCREEN_MOCK: GroupDetailScreenMock = {
+  return {
   title: "Freundeskreis",
   subtitle: "Dauerhafte Gruppe · 4 Mitglieder",
   balanceTitle: "Gruppensaldo",
@@ -101,6 +109,7 @@ export const GROUP_DETAIL_SCREEN_MOCK: GroupDetailScreenMock = {
   timelineTitle: "Timeline",
   timelineHint: "Verlauf zeigt Ledger-Ereignisse, keine Inbox-Aktionen.",
   timeline: [
+    ...draftTimeline,
     {
       actor: "Anna",
       event: "hat Abendessen hinzugefügt",
@@ -126,4 +135,5 @@ export const GROUP_DETAIL_SCREEN_MOCK: GroupDetailScreenMock = {
     { label: "Aktivität erstellen" },
     { label: "Teilnehmer pausieren" },
   ],
-};
+  };
+}

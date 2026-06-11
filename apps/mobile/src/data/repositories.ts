@@ -34,6 +34,8 @@ export interface RecordParticipantOption extends RecordPersonOption {
 }
 
 export interface RecordSetupData {
+  groupId: EntityId;
+  contextId: EntityId;
   contextLabel: string;
   expenseDate: ISODateString;
   currency: CurrencyCode;

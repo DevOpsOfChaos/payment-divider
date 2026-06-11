@@ -14,14 +14,18 @@ import {
   MOCK_EXPENSE_SHARES,
   MOCK_PAYMENT_ACTIONS,
 } from "./ledger";
+import { getDraftExpenses, getDraftExpenseShares } from "../data/local-ledger";
 
 const DEFAULT_CURRENCY: CurrencyCode = "EUR";
 
-const BALANCE_INPUT = {
-  expenses: MOCK_EXPENSES,
-  expenseShares: MOCK_EXPENSE_SHARES,
-  paymentActions: MOCK_PAYMENT_ACTIONS,
-};
+// Built per call so session-local Record drafts flow into every derived balance.
+function getBalanceInput() {
+  return {
+    expenses: [...MOCK_EXPENSES, ...getDraftExpenses()],
+    expenseShares: [...MOCK_EXPENSE_SHARES, ...getDraftExpenseShares()],
+    paymentActions: MOCK_PAYMENT_ACTIONS,
+  };
+}
 
 function getCurrentUserAmount(balanceEntries: BalanceEntry[]): number {
   return (
@@ -68,7 +72,7 @@ export function formatBalanceLabel(amountInMinorUnits: number): string {
 
 export function getPersonalBalanceSummary() {
   const summary = calculatePersonalBalanceSummary({
-    ...BALANCE_INPUT,
+    ...getBalanceInput(),
     userId: MOCK_CURRENT_USER_ID,
   });
   const balance = summary.balances.find(
@@ -89,7 +93,7 @@ export function getPersonalBalanceSummary() {
 export function getGroupBalanceSummary(groupId: EntityId) {
   const amount = getCurrentUserAmount(
     calculateGroupBalances({
-      ...BALANCE_INPUT,
+      ...getBalanceInput(),
       groupId,
     }),
   );
@@ -104,7 +108,7 @@ export function getGroupBalanceSummary(groupId: EntityId) {
 export function getActivityBalanceSummary(groupId: EntityId, contextId: EntityId) {
   const amount = getCurrentUserAmount(
     calculateActivityBalances({
-      ...BALANCE_INPUT,
+      ...getBalanceInput(),
       groupId,
       contextId,
     }),

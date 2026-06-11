@@ -1,6 +1,11 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { appRepositories, type BalanceTone, type OverviewData } from "../data";
+import {
+  appRepositories,
+  useLedgerVersion,
+  type BalanceTone,
+  type OverviewData,
+} from "../data";
 
 type OverviewBalanceRow = OverviewData["receivables"][number];
 
@@ -33,6 +38,7 @@ function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRow) 
 }
 
 export function OverviewScreen() {
+  useLedgerVersion();
   const overview = appRepositories.getOverview();
 
   return (

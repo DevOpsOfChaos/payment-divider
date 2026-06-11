@@ -4,19 +4,14 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { splitExpenseEqually, type EntityId } from "@payment-divider/core";
 
 import {
+  addDraftExpense,
   appRepositories,
   formatMoney,
+  getDraftExpenses,
+  useLedgerVersion,
   type RecordParticipantOption,
   type RecordSetupData,
 } from "../data";
-
-interface LocalExpenseDraft {
-  id: string;
-  title: string;
-  amountMinor: number;
-  payerName: string;
-  participantNames: string[];
-}
 
 // Parses German money input like "42,80" or "1.250,00" into integer cents.
 function parseGermanAmountToMinor(rawText: string): number | undefined {
@@ -68,8 +63,9 @@ export function RecordScreen() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<EntityId>>(() =>
     buildInitialSelection(setup),
   );
-  const [drafts, setDrafts] = useState<LocalExpenseDraft[]>([]);
   const [showErrors, setShowErrors] = useState(false);
+  useLedgerVersion();
+  const drafts = getDraftExpenses();
 
   const amountMinor = parseGermanAmountToMinor(amountText);
   const selectedParticipants = setup.participants.filter((participant) =>
@@ -120,19 +116,37 @@ export function RecordScreen() {
       return;
     }
 
-    const payerName =
-      setup.payerOptions.find((option) => option.userId === payerUserId)?.name ?? payerUserId;
+    const draftId = `draft-${Date.now()}-${drafts.length}`;
+    const nowIso = new Date().toISOString();
+    const shares = splitExpenseEqually({
+      amount: amountMinor,
+      currency: setup.currency,
+      participantUserIds: selectedParticipants.map((participant) => participant.userId),
+    });
 
-    setDrafts((current) => [
-      ...current,
-      {
-        id: `draft-${Date.now()}-${current.length}`,
+    addDraftExpense({
+      expense: {
+        id: draftId,
+        groupId: setup.groupId,
+        contextId: setup.contextId,
+        amount: amountMinor,
+        currency: setup.currency,
+        paidByUserId: payerUserId,
+        date: setup.expenseDate,
         title: title.trim() || "Ausgabe",
-        amountMinor,
-        payerName,
-        participantNames: selectedParticipants.map((participant) => participant.name),
+        createdBy: payerUserId,
+        createdAt: nowIso,
+        updatedAt: nowIso,
       },
-    ]);
+      shares: shares.map((share) => ({
+        id: `${draftId}-${share.userId}`,
+        expenseId: draftId,
+        userId: share.userId,
+        shareType: "equal",
+        amount: share.amount,
+        currency: share.currency,
+      })),
+    });
     setAmountText("");
     setTitle("");
     setSelectedUserIds(buildInitialSelection(setup));
@@ -253,22 +267,25 @@ export function RecordScreen() {
 
       {drafts.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Lokale Entwürfe</Text>
+          <Text style={styles.sectionLabel}>Lokale Demo-Drafts</Text>
           <View style={styles.sectionCard}>
             {drafts.map((draft) => (
               <View key={draft.id} style={styles.draftRow}>
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewName}>{draft.title}</Text>
-                  <Text style={styles.previewAmount}>{formatMoney(draft.amountMinor)}</Text>
+                  <Text style={styles.previewName}>{draft.title ?? "Ausgabe"}</Text>
+                  <Text style={styles.previewAmount}>{formatMoney(draft.amount)}</Text>
                 </View>
                 <Text style={styles.draftMeta}>
-                  Bezahlt von {draft.payerName} · {draft.participantNames.join(", ")}
+                  Bezahlt von{" "}
+                  {setup.payerOptions.find((option) => option.userId === draft.paidByUserId)
+                    ?.name ?? draft.paidByUserId}{" "}
+                  · fließt in die Demo-Salden ein
                 </Text>
               </View>
             ))}
           </View>
           <Text style={styles.compactHint}>
-            Nur lokal gespeichert · nicht synchronisiert · keine Zahlungsausführung.
+            Demo-Draft · nur lokal · nicht synchronisiert · keine Zahlungsausführung.
           </Text>
         </View>
       ) : null}

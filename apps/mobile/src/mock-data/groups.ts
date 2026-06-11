@@ -19,21 +19,22 @@ export interface GroupCardMock {
   activities: GroupActivityMock[];
 }
 
-const friendsBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
-const friendsGeneralBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.friendsGeneral,
-);
-const amsterdamBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.amsterdam,
-);
-const festivalBalance = getActivityBalanceSummary(
-  MOCK_GROUP_IDS.friends,
-  MOCK_CONTEXT_IDS.festival,
-);
+export function buildGroupsMock(): GroupCardMock[] {
+  const friendsBalance = getGroupBalanceSummary(MOCK_GROUP_IDS.friends);
+  const friendsGeneralBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.friendsGeneral,
+  );
+  const amsterdamBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.amsterdam,
+  );
+  const festivalBalance = getActivityBalanceSummary(
+    MOCK_GROUP_IDS.friends,
+    MOCK_CONTEXT_IDS.festival,
+  );
 
-export const GROUPS_MOCK: GroupCardMock[] = [
+  return [
   {
     name: "Freundeskreis",
     contextLabel: "Dauerhafte Gruppe",
@@ -94,4 +95,5 @@ export const GROUPS_MOCK: GroupCardMock[] = [
       },
     ],
   },
-];
+  ];
+}

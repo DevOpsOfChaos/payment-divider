@@ -1,8 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { appRepositories, type BalanceTone } from "../data";
-
-const GROUP_DETAIL = appRepositories.getGroupDetail();
+import { appRepositories, useLedgerVersion, type BalanceTone } from "../data";
 
 function getBalanceStyle(tone: BalanceTone) {
   switch (tone) {
@@ -18,6 +16,9 @@ function getBalanceStyle(tone: BalanceTone) {
 }
 
 export function GroupDetailScreen() {
+  useLedgerVersion();
+  const GROUP_DETAIL = appRepositories.getGroupDetail();
+
   return (
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>{GROUP_DETAIL.title}</Text>
