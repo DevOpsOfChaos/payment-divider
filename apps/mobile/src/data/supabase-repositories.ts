@@ -24,11 +24,17 @@ import {
 import { mockRepositories } from "./mock-repositories";
 import { notifyExternalDataChanged } from "./local-ledger";
 import { getSupabaseClient } from "../services/supabase-client";
+import {
+  createExpenseWithShares,
+  createGroupWithDefaults,
+} from "../services/supabase-writes";
 import type {
   AppRepositories,
   OverviewData,
+  RecordSetupData,
   SettlementActionKind,
   SettlementItemData,
+  WriteResult,
 } from "./repositories";
 
 // Read-only supabase-local adapter behind the same repository interfaces.
@@ -545,6 +551,56 @@ function buildSettlementItems(data: RemoteData): SettlementItemData[] {
     });
 }
 
+function buildSupabaseRecordSetup(data: RemoteData): RecordSetupData | undefined {
+  if (!currentUserId) {
+    return undefined;
+  }
+  const group = data.groups[0];
+  const context = data.contexts.find((candidate) => candidate.groupId === group?.id);
+  if (!group || !context) {
+    return undefined;
+  }
+  const memberIds = data.members
+    .filter((member) => member.groupId === group.id && !member.leftAt)
+    .map((member) => member.userId);
+  if (memberIds.length === 0) {
+    return undefined;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    groupId: group.id,
+    contextId: context.id,
+    contextLabel: `${group.name} · ${context.name} · supabase-local`,
+    expenseDate: today,
+    currency: group.defaultCurrency,
+    payerOptions: memberIds.map((userId) => ({
+      userId,
+      name: getUserName(data, userId),
+    })),
+    defaultPayerUserId: memberIds.includes(currentUserId) ? currentUserId : memberIds[0],
+    participants: memberIds.map((userId) => ({
+      userId,
+      name: getUserName(data, userId),
+      paused: false,
+      defaultSelected: true,
+    })),
+  };
+}
+
+async function withSession(
+  run: (client: SupabaseClient, userId: string) => Promise<WriteResult>,
+): Promise<WriteResult> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: "Kein Supabase-Client konfiguriert (siehe .env.example)." };
+  }
+  if (!currentUserId) {
+    return { ok: false, message: "Keine lokale Dev-Session aktiv (Profil-Tab)." };
+  }
+  return run(client, currentUserId);
+}
+
 export const supabaseRepositories: AppRepositories = {
   getOverview: () => {
     const data = ensureLoaded();
@@ -571,7 +627,27 @@ export const supabaseRepositories: AppRepositories = {
     const detail = data ? buildActivityDetail(data) : undefined;
     return detail ?? mockRepositories.getActivityDetail();
   },
-  getRecordSetup: () => mockRepositories.getRecordSetup(),
+  getRecordSetup: () => {
+    const data = ensureLoaded();
+    const setup = data ? buildSupabaseRecordSetup(data) : undefined;
+    return setup ?? mockRepositories.getRecordSetup();
+  },
+  createGroup: (input) =>
+    withSession(async (client, userId) => {
+      const result = await createGroupWithDefaults(client, userId, input);
+      if (result.ok) {
+        reloadSupabaseData();
+      }
+      return result;
+    }),
+  createExpense: (input) =>
+    withSession(async (client, userId) => {
+      const result = await createExpenseWithShares(client, userId, input);
+      if (result.ok) {
+        reloadSupabaseData();
+      }
+      return result;
+    }),
   getInbox: () => {
     const data = ensureLoaded();
     if (!data) {

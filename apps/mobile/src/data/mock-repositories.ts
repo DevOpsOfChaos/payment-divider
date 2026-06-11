@@ -1,4 +1,7 @@
-import { buildDefaultExpenseParticipantSelection } from "@payment-divider/core";
+import {
+  buildDefaultExpenseParticipantSelection,
+  splitExpenseEqually,
+} from "@payment-divider/core";
 
 import { buildActivityDetailMock } from "../mock-data/activity-detail";
 import { buildGroupDetailMock } from "../mock-data/group-detail";
@@ -12,7 +15,11 @@ import {
   RECENT_ACTIVITY_MOCK,
   buildOverviewBalanceMock,
 } from "../mock-data/overview";
-import { applyLocalPaymentActionOverrides, getDraftExpenses } from "./local-ledger";
+import {
+  addDraftExpense,
+  applyLocalPaymentActionOverrides,
+  getDraftExpenses,
+} from "./local-ledger";
 import { PROFILE_SCREEN_MOCK } from "../mock-data/profile";
 import {
   MOCK_CONTEXT_IDS,
@@ -137,5 +144,44 @@ export const mockRepositories: AppRepositories = {
   getRecordSetup: buildRecordSetup,
   getInbox: () => INBOX_SCREEN_MOCK,
   getSettlementItems: buildSettlementItems,
+  createGroup: async () => ({
+    ok: false,
+    message: "Gruppen anlegen gibt es nur im supabase-local Modus.",
+  }),
+  createExpense: async (input) => {
+    const draftId = `draft-${Date.now()}-${getDraftExpenses().length}`;
+    const nowIso = new Date().toISOString();
+    const shares = splitExpenseEqually({
+      amount: input.amountMinor,
+      currency: input.currency,
+      participantUserIds: input.participantUserIds,
+    });
+
+    addDraftExpense({
+      expense: {
+        id: draftId,
+        groupId: input.groupId,
+        contextId: input.contextId,
+        amount: input.amountMinor,
+        currency: input.currency,
+        paidByUserId: input.paidByUserId,
+        date: input.date,
+        title: input.title ?? "Ausgabe",
+        createdBy: input.paidByUserId,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      },
+      shares: shares.map((share) => ({
+        id: `${draftId}-${share.userId}`,
+        expenseId: draftId,
+        userId: share.userId,
+        shareType: "equal",
+        amount: share.amount,
+        currency: share.currency,
+      })),
+    });
+
+    return { ok: true, message: "Demo-Draft lokal gespeichert · nicht synchronisiert." };
+  },
   getProfile: () => PROFILE_SCREEN_MOCK,
 };

@@ -50,6 +50,24 @@ function DevSessionCard() {
           {sessionUserId ? "Dev-Session beenden" : "Dev-Session starten (nur lokal)"}
         </Text>
       </Pressable>
+      {sessionUserId ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() =>
+            run(() =>
+              appRepositories.createGroup({
+                name: "Lokale Testgruppe",
+                type: "friends",
+                defaultCurrency: "EUR",
+              }),
+            )
+          }
+          style={styles.devButton}
+        >
+          <Text style={styles.devButtonText}>Demo-Gruppe lokal anlegen</Text>
+        </Pressable>
+      ) : null}
       {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
     </View>
   );
