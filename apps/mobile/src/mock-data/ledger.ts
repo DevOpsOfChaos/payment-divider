@@ -322,6 +322,17 @@ export const MOCK_MEMBER_AVAILABILITY: MemberAvailability[] = [
 
 export const MOCK_PAYMENT_ACTIONS: PaymentAction[] = [
   {
+    id: "payment-flat-suggestion",
+    groupId: MOCK_GROUP_IDS.flat,
+    contextId: MOCK_CONTEXT_IDS.flatGeneral,
+    payerId: MOCK_USER_IDS.manu,
+    payeeId: MOCK_USER_IDS.max,
+    amount: 1840,
+    currency: CURRENCY,
+    status: "suggested",
+    createdAt: CREATED_AT,
+  },
+  {
     id: "payment-festival-settlement",
     groupId: MOCK_GROUP_IDS.friends,
     contextId: MOCK_CONTEXT_IDS.festival,

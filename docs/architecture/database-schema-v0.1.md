@@ -42,7 +42,9 @@ Current group membership means a matching `group_members` row with `user_id = au
 
 A follow-up migration (`20260611100000_controlled_mvp1a_write_policies.sql`) adds controlled write policies: own-profile insert, group creation by the creator, initial creator membership plus admin-managed member inserts, activity creation by members and updates by owners/admins, expense and expense-share inserts by active members, ledger-only payment-action inserts restricted to an involved party, timeline appends by the acting member, and own-inbox inserts. It also adds `is_group_creator` and `is_group_admin` security-definer helpers.
 
-Still deferred until the corresponding application flows are designed: payment-action status transitions (mark paid, confirm, reject), membership changes beyond creation, availability edits, inbox resolution updates, and all delete policies.
+A further migration (`20260611120000_payment_action_status_transitions.sql`) enables the two ledger-only payment-action transitions: the payer may update their own `suggested` action to `marked_paid`, and the payee may update a `marked_paid` action to `confirmed` or `rejected`. A before-update trigger keeps every non-status column immutable, fills the matching status timestamp, and rejects any other transition. These updates document externally settled payments only; they never initiate, execute, or verify a payment.
+
+Still deferred until the corresponding application flows are designed: membership changes beyond creation, availability edits, inbox resolution updates, and all delete policies.
 
 `payment_actions` remain ledger-only records. They do not initiate payments, connect providers, hold funds, import bank data, verify external settlement, or store payment methods.
 

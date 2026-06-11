@@ -1,4 +1,9 @@
-import type { CurrencyCode, EntityId, ISODateString } from "@payment-divider/core";
+import type {
+  CurrencyCode,
+  EntityId,
+  ISODateString,
+  PaymentAction,
+} from "@payment-divider/core";
 
 import type { ActivityDetailScreenMock } from "../mock-data/activity-detail";
 import type { GroupDetailScreenMock } from "../mock-data/group-detail";
@@ -64,8 +69,21 @@ export interface RecordRepository {
   getRecordSetup(): RecordSetupData;
 }
 
+export type SettlementRole = "payer" | "payee";
+export type SettlementActionKind = "mark_paid" | "confirm" | "reject";
+
+export interface SettlementItemData {
+  action: PaymentAction;
+  counterpartyName: string;
+  source: string;
+  role: SettlementRole;
+  statusLabel: string;
+  availableActions: SettlementActionKind[];
+}
+
 export interface InboxRepository {
   getInbox(): InboxScreenMock;
+  getSettlementItems(): SettlementItemData[];
 }
 
 export interface ProfileRepository {

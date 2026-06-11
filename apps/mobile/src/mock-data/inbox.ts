@@ -19,13 +19,6 @@ export const INBOX_SCREEN_MOCK: InboxScreenMock = {
   summary: "Offene Aktionen bleiben getrennt von der Timeline und führen keine Zahlung im App-Flow aus.",
   items: [
     {
-      title: "Zahlung bestätigen",
-      detail: "Anna hat 34,00 € als extern erledigt markiert.",
-      source: "Portugal Reise",
-      status: "Bestätigung offen",
-      actionLabel: "Bestätigung prüfen",
-    },
-    {
       title: "Einladung offen",
       detail: "Lukas lädt dich in Festival 2026 ein.",
       source: "Freundeskreis",

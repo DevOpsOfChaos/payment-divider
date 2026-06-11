@@ -14,7 +14,11 @@ import {
   MOCK_EXPENSE_SHARES,
   MOCK_PAYMENT_ACTIONS,
 } from "./ledger";
-import { getDraftExpenses, getDraftExpenseShares } from "../data/local-ledger";
+import {
+  applyLocalPaymentActionOverrides,
+  getDraftExpenses,
+  getDraftExpenseShares,
+} from "../data/local-ledger";
 
 const DEFAULT_CURRENCY: CurrencyCode = "EUR";
 
@@ -23,7 +27,7 @@ function getBalanceInput() {
   return {
     expenses: [...MOCK_EXPENSES, ...getDraftExpenses()],
     expenseShares: [...MOCK_EXPENSE_SHARES, ...getDraftExpenseShares()],
-    paymentActions: MOCK_PAYMENT_ACTIONS,
+    paymentActions: applyLocalPaymentActionOverrides(MOCK_PAYMENT_ACTIONS),
   };
 }
 
