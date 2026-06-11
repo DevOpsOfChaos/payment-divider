@@ -266,6 +266,19 @@ function ensureLoaded(): RemoteData | undefined {
   return undefined;
 }
 
+// Drops the cached snapshot so the next repository read refetches, e.g. after
+// a dev session starts or ends.
+export function reloadSupabaseData(): void {
+  loadState = "idle";
+  remote = undefined;
+  loadErrorMessage = undefined;
+  notifyExternalDataChanged();
+}
+
+export function getSupabaseSessionUserId(): EntityId | undefined {
+  return currentUserId;
+}
+
 export function getSupabaseDataStatusHint(): string {
   switch (loadState) {
     case "ready":

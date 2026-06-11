@@ -1,6 +1,15 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { appRepositories } from "../data";
+import { useState } from "react";
+import { Pressable } from "react-native";
+
+import {
+  appRepositories,
+  getDataSourceMode,
+  getSupabaseSessionUserId,
+  useLedgerVersion,
+} from "../data";
+import { endDevSession, startDevSession } from "../services/dev-session";
 import type {
   PaymentControlMock,
   PrivacyNoteMock,
@@ -8,7 +17,43 @@ import type {
   VisibilityProfileMock,
 } from "../mock-data/profile";
 
-const PROFILE = appRepositories.getProfile();
+function DevSessionCard() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | undefined>(undefined);
+  const sessionUserId = getSupabaseSessionUserId();
+
+  async function run(action: () => Promise<{ message: string }>) {
+    setBusy(true);
+    try {
+      const result = await action();
+      setMessage(result.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={styles.subCard}>
+      <Text style={styles.subCardTitle}>Lokale Dev-Session</Text>
+      <Text style={styles.subCardDetail}>
+        {sessionUserId
+          ? "Session aktiv · eigenes Profil kommt aus der lokalen Datenbank."
+          : "Keine Session · RLS blendet alle Daten aus. Nur für lokale Entwicklung, keine Production-UX."}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => run(sessionUserId ? endDevSession : startDevSession)}
+        style={styles.devButton}
+      >
+        <Text style={styles.devButtonText}>
+          {sessionUserId ? "Dev-Session beenden" : "Dev-Session starten (nur lokal)"}
+        </Text>
+      </Pressable>
+      {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+    </View>
+  );
+}
 
 function IdentityRow({ label, value }: ProfileIdentityRowMock) {
   return (
@@ -50,10 +95,16 @@ function PrivacyNoteRow({ title, detail }: PrivacyNoteMock) {
 }
 
 export function ProfileScreen() {
+  useLedgerVersion();
+  const PROFILE = appRepositories.getProfile();
+  const isSupabaseLocal = getDataSourceMode() === "supabase-local";
+
   return (
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>{PROFILE.title}</Text>
       <Text style={styles.screenPurpose}>{PROFILE.subtitle}</Text>
+
+      {isSupabaseLocal ? <DevSessionCard /> : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Identität</Text>
@@ -222,5 +273,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: "#4f463b",
+  },
+  devButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "#1f1b16",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  devButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fffaf0",
   },
 });
