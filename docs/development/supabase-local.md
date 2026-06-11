@@ -55,6 +55,14 @@ corepack pnpm db:reset   # supabase db reset
 corepack pnpm db:check   # db lint, then db reset
 ```
 
+Independent of the CLI, a static boundary check scans `supabase/**/*.sql` for secret-like terms and out-of-scope payment-provider/bank/wallet schema terms:
+
+```powershell
+corepack pnpm db:boundary-check
+```
+
+It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbidden terms appear outside clearly marked exclusion comments.
+
 These shell out to the `supabase` binary and fail with a clear error if it is not installed.
 
 ## When Docker is needed
