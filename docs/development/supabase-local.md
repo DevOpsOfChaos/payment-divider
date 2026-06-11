@@ -69,6 +69,17 @@ It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbi
 
 The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PUBLIC_DATA_SOURCE=supabase-local` in `apps/mobile/.env` (template: `.env.example` at the repo root) selects the local-Supabase mode, configured via `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLIC_KEY` — both printed by `supabase start`. Missing configuration falls back to local-demo with a dev hint instead of crashing. Only `.env.example` may be committed; the boundary check enforces this and rejects secret-like values in it.
 
+## RLS behavior smoke tests
+
+`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, and column immutability via the transition trigger. The whole test runs in one transaction and rolls back, leaving the database clean.
+
+```powershell
+npx supabase db start
+corepack pnpm db:rls-test   # 9 assertions, runs psql inside the local db container
+```
+
+Last run 2026-06-11: 9/9 PASS.
+
 ## Continuous integration
 
 `.github/workflows/checks.yml` runs the boundary check, typecheck, tests, lint, and whitespace hygiene on every pull request and push to `main`. CI uses no secrets and never connects to a Supabase project; Docker-based `db lint`/`db reset` stay a local workflow.
