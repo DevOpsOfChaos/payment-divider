@@ -46,6 +46,10 @@ Write policies for group creation, membership changes, activity creation, availa
 
 Payment methods, visibility profiles, receipts, location data, storage buckets, offline sync, and provider-specific behavior remain out of the MVP 1A schema.
 
+## Core type mapping
+
+How the shared core domain types map to these tables and columns, including known enum divergences, is documented in `docs/architecture/core-database-field-mapping.md`.
+
 ## Local validation
 
 Migrations are validated locally with the Supabase CLI (`supabase db lint`, `supabase db reset`) against a Docker-based local stack, never against a live project. See `docs/development/supabase-local.md`.
