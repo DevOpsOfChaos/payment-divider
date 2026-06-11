@@ -150,7 +150,9 @@ export function disableReminder(
 // a dispute never deletes or invalidates the claim — it stays open at the
 // creator as "needs clarification" until clarified, taken over or archived;
 // a disputed claim can never jump straight to settled.
-const CLAIM_STATUS_TRANSITIONS: Record<ClaimStatus, readonly ClaimStatus[]> = {
+// Exported so scripts/check-claim-transition-parity.ts can prove the database
+// trigger enforces exactly this table (single source of truth lives here).
+export const CLAIM_STATUS_TRANSITIONS: Record<ClaimStatus, readonly ClaimStatus[]> = {
   draft: ["private_open", "linked_open", "archived"],
   // Private claims have no counterparty view, so they cannot be disputed.
   private_open: ["linked_open", "partially_paid", "marked_paid", "settled", "archived"],

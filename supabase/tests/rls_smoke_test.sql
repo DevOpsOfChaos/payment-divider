@@ -12,6 +12,10 @@
 --   6. claims: free-text claims are creator-only; linked claims are visible to
 --      the counterparty, who may dispute but not edit amounts; claim payments
 --      keep their core fields immutable.
+--   7. claims: status transitions are enforced server-side (trigger mirrors
+--      CLAIM_STATUS_TRANSITIONS in core): disputed never jumps to settled or
+--      creditor_confirmed, unshared claims cannot be disputed, archived is
+--      terminal, and a counterparty can never delete a claim.
 
 begin;
 
@@ -308,5 +312,141 @@ begin
   end;
 end;
 $$;
+
+-- ------------------------------- claim status transition hardening (#106) ---
+-- Claim a3 is 'disputed' at this point (B disputed it above).
+
+-- Creator A: the per-role counterparty trigger does not apply, so these hit
+-- the status transition trigger directly.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+
+-- Disputed never jumps straight to settled or creditor_confirmed.
+do $$
+begin
+  begin
+    update public.claims
+    set status = 'settled'
+    where id = '00000000-0000-0000-0000-0000000000a3';
+    raise exception 'FAIL: disputed claim could be settled directly';
+  exception
+    when others then
+      if sqlerrm like '%is not allowed%' then
+        raise notice 'PASS: disputed claim cannot move straight to settled';
+      else
+        raise;
+      end if;
+  end;
+  begin
+    update public.claims
+    set status = 'creditor_confirmed'
+    where id = '00000000-0000-0000-0000-0000000000a3';
+    raise exception 'FAIL: disputed claim could be creditor_confirmed directly';
+  exception
+    when others then
+      if sqlerrm like '%is not allowed%' then
+        raise notice 'PASS: disputed claim cannot move straight to creditor_confirmed';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+-- Clarification path stays open: disputed -> debtor_acknowledged is allowed
+-- (counterparty B takes the claim over after talking it through).
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+with updated as (
+  update public.claims
+  set status = 'debtor_acknowledged'
+  where id = '00000000-0000-0000-0000-0000000000a3'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 1,
+  'disputed claim can be taken over after clarification');
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+
+-- Unshared claims cannot be disputed: neither from private_open (table) nor
+-- from linked_open while still unshared (explicit guard).
+do $$
+begin
+  begin
+    update public.claims
+    set status = 'disputed'
+    where id = '00000000-0000-0000-0000-0000000000a5';
+    raise exception 'FAIL: private_open claim could be disputed';
+  exception
+    when others then
+      if sqlerrm like '%is not allowed%' then
+        raise notice 'PASS: private_open claim cannot be disputed';
+      else
+        raise;
+      end if;
+  end;
+
+  update public.claims
+  set status = 'linked_open'
+  where id = '00000000-0000-0000-0000-0000000000a5';
+
+  begin
+    update public.claims
+    set status = 'disputed'
+    where id = '00000000-0000-0000-0000-0000000000a5';
+    raise exception 'FAIL: unshared linked_open claim could be disputed';
+  exception
+    when others then
+      if sqlerrm like '%can be disputed%' then
+        raise notice 'PASS: unshared claim cannot be disputed even when linked_open';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+-- Archived is terminal and archiving stamps archived_at.
+update public.claims
+set status = 'archived'
+where id = '00000000-0000-0000-0000-0000000000a5';
+
+select pg_temp.assert(
+  (select archived_at is not null from public.claims
+   where id = '00000000-0000-0000-0000-0000000000a5'),
+  'archiving stamps archived_at');
+
+do $$
+begin
+  begin
+    update public.claims
+    set status = 'linked_open'
+    where id = '00000000-0000-0000-0000-0000000000a5';
+    raise exception 'FAIL: archived claim could be reopened';
+  exception
+    when others then
+      if sqlerrm like '%is not allowed%' then
+        raise notice 'PASS: archived is terminal';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+-- A dispute/rejection never deletes: the counterparty cannot delete a claim
+-- (no DELETE privilege is granted on claims at all, let alone a policy).
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+do $$
+begin
+  begin
+    delete from public.claims
+    where id = '00000000-0000-0000-0000-0000000000a3';
+    raise exception 'FAIL: counterparty could delete a claim';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: counterparty cannot delete a claim';
+  end;
+end;
+$$;
+reset role;
 
 rollback;
