@@ -63,7 +63,9 @@ another person, it is function and belongs in free.
 2. Backup format and key handling decision (user-held key, E2E — design doc
    before any code).
 3. Mapping the data classes onto the existing schema (audit: which tables are
-   shared-by-design vs. owner-private; RLS already encodes most of it).
+   shared-by-design vs. owner-private; RLS already encodes most of it) —
+   done in `docs/architecture/shared-alpha-backend-readiness.md` (#108),
+   including the open local-private storage decision.
 
 ## Non-goals
 
