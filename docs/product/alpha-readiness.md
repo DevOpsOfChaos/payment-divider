@@ -59,8 +59,10 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
 - Dev session uses fixed local credentials — meaningless outside the local
   stack, but must never be reused in any deployed environment.
 - No generated DB types; the row mapping in the adapters is hand-written.
-- Claims in supabase-local are verified via typecheck + RLS smoke tests only;
-  no device/emulator run yet (device QA track: #107).
+- Claims/person balance/reminders passed a manual emulator QA run on
+  2026-06-12 (Android emulator, Expo Go, both data modes — see
+  `docs/development/demo-script.md`); findings tracked in #122/#123. Expo Go
+  is not a production-near development build.
 
 ## Next MVP 1B block
 
