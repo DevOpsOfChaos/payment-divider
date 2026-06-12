@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type {
@@ -20,13 +21,15 @@ function parseAmount(rawText: string): number | undefined {
   return Math.round(Number.parseFloat(normalized) * 100);
 }
 
-const LIFECYCLE_LABELS: Record<string, string> = {
-  open: "offen",
-  partially_paid: "teilweise bezahlt",
-  settled: "erledigt",
-  disputed: "Klärung nötig",
-  archived: "archiviert",
-};
+const LIFECYCLE_KEYS = {
+  open: "claims.lifecycle.open",
+  partially_paid: "claims.lifecycle.partiallyPaid",
+  settled: "claims.lifecycle.settled",
+  disputed: "claims.lifecycle.disputed",
+  archived: "claims.lifecycle.archived",
+} as const;
+
+type LifecycleKey = keyof typeof LIFECYCLE_KEYS;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -47,11 +50,11 @@ function formatReminderTime(remindAt: string): string {
   return `${remindAt.slice(0, 10)} ${remindAt.slice(11, 16)}`;
 }
 
-const COUNTERPARTY_LABELS: Record<CounterpartyKind, string> = {
-  app_user: "App-Kontakt",
-  invited_person: "Einladung",
-  external_person: "Extern",
-};
+const COUNTERPARTY_KIND_KEYS = {
+  app_user: "claims.counterpartyKind.appUser",
+  invited_person: "claims.counterpartyKind.invitedPerson",
+  external_person: "claims.counterpartyKind.externalPerson",
+} as const satisfies Record<CounterpartyKind, string>;
 
 function Chip({
   label,
@@ -73,16 +76,21 @@ function Chip({
   );
 }
 
-function positionLabel(position: PersonBalancePosition): string {
-  if (position.sourceType === "group_balance") {
-    return `Gruppensaldo ${position.label ?? position.sourceId}`;
-  }
-  return position.label ?? "Forderung ohne Zweck";
+function usePositionLabel(): (position: PersonBalancePosition) => string {
+  const { t } = useTranslation();
+  return (position) => {
+    if (position.sourceType === "group_balance") {
+      return `${t("claims.position.groupBalance")} ${position.label ?? position.sourceId}`;
+    }
+    return position.label ?? t("claims.position.noPurpose");
+  };
 }
 
 // One person row: net summary up front, gross positions on demand. Closed
 // positions stay reachable as history but never count into the net.
 function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
+  const { t } = useTranslation();
+  const positionLabel = usePositionLabel();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -102,13 +110,13 @@ function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
         </View>
         <Text style={styles.claimMeta}>
           {overview.netAmount > 0
-            ? "bekommst du netto"
+            ? t("claims.personSection.netReceivable")
             : overview.netAmount < 0
-              ? "schuldest du netto"
-              : "ausgeglichen"}
+              ? t("claims.personSection.netOwed")
+              : t("claims.personSection.netSettled")}
           {" · "}
-          {formatMoney(overview.openOwedToMe)} offen für dich · {formatMoney(overview.openOwedByMe)}
-          {" "}offen von dir
+          {formatMoney(overview.openOwedToMe)} {t("claims.personSection.openForYou")} ·{" "}
+          {formatMoney(overview.openOwedByMe)} {t("claims.personSection.openFromYou")}
         </Text>
       </Pressable>
       {expanded ? (
@@ -120,20 +128,25 @@ function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
             >
               {position.direction === "owed_to_me" ? "+" : "-"}
               {formatMoney(position.amount)} · {positionLabel(position)}
-              {position.sourceType === "private_claim" ? " · Forderung" : ""}
+              {position.sourceType === "private_claim"
+                ? ` · ${t("claims.position.claimSuffix")}`
+                : ""}
             </Text>
           ))}
           {overview.closedPositions.length > 0 ? (
             <>
               <Text style={styles.detailTitle}>
-                Verlauf ({overview.closedPositions.length} abgeschlossen)
+                {t("claims.personSection.historyTitle", {
+                  n: overview.closedPositions.length,
+                })}
               </Text>
               {overview.closedPositions.map((position) => (
                 <Text
                   key={`closed:${position.sourceType}:${position.sourceId}:${position.direction}`}
                   style={styles.detailLine}
                 >
-                  {formatMoney(position.amount)} · {positionLabel(position)} · erledigt
+                  {formatMoney(position.amount)} · {positionLabel(position)} ·{" "}
+                  {t("claims.position.done")}
                 </Text>
               ))}
             </>
@@ -145,12 +158,13 @@ function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
 }
 
 function ClaimCard({ item }: { item: ClaimListItem }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [paymentText, setPaymentText] = useState("");
   const { claim } = item;
 
   const directionLabel =
-    claim.direction === "owed_to_me" ? "schuldet dir" : "du schuldest";
+    claim.direction === "owed_to_me" ? t("claims.card.owesYou") : t("claims.card.youOwe");
   const counterpartyDisplay = item.counterpartyName;
   const groupName = item.groupName;
   const paymentAmount = parseAmount(paymentText);
@@ -162,24 +176,31 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
       <Pressable accessibilityRole="button" onPress={() => setExpanded(!expanded)}>
         <View style={styles.claimHeader}>
           <Text style={styles.claimName}>
-            {counterpartyDisplay} {item.incoming ? "fordert" : directionLabel}
+            {counterpartyDisplay} {item.incoming ? t("claims.card.demands") : directionLabel}
           </Text>
           <Text style={styles.claimAmount}>{formatMoney(item.remaining)}</Text>
         </View>
         <Text style={styles.claimMeta}>
-          {claim.purpose ?? "Ohne Zweck"} · {claim.claimDate}
-          {claim.dueDate ? ` · fällig ${claim.dueDate}` : ""}
+          {claim.purpose ?? t("claims.card.noPurpose")} · {claim.claimDate}
+          {claim.dueDate ? ` · ${t("claims.card.dueAt", { date: claim.dueDate })}` : ""}
           {groupName ? ` · ${groupName}` : ""}
         </Text>
         <View style={styles.badgeRow}>
           {item.counterparty ? (
-            <Text style={styles.badge}>{COUNTERPARTY_LABELS[item.counterparty.kind]}</Text>
+            <Text style={styles.badge}>{t(COUNTERPARTY_KIND_KEYS[item.counterparty.kind])}</Text>
           ) : null}
-          <Text style={styles.badge}>{LIFECYCLE_LABELS[item.lifecycle]}</Text>
-          {!item.linked ? <Text style={styles.badge}>privat · nicht geteilt</Text> : null}
+          {item.lifecycle in LIFECYCLE_KEYS ? (
+            <Text style={styles.badge}>{t(LIFECYCLE_KEYS[item.lifecycle as LifecycleKey])}</Text>
+          ) : null}
+          {!item.linked ? (
+            <Text style={styles.badge}>{t("claims.card.privateUnshared")}</Text>
+          ) : null}
           {item.remaining < claim.amount ? (
             <Text style={styles.badge}>
-              {formatMoney(claim.amount - item.remaining)} von {formatMoney(claim.amount)} bezahlt
+              {t("claims.card.paidOf", {
+                paid: formatMoney(claim.amount - item.remaining),
+                total: formatMoney(claim.amount),
+              })}
             </Text>
           ) : null}
         </View>
@@ -192,31 +213,31 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
             onPress={() => void claimsData.acknowledgeClaim(claim.id)}
             style={styles.actionButton}
           >
-            <Text style={styles.actionButtonText}>bestätigen</Text>
+            <Text style={styles.actionButtonText}>{t("claims.actions.acknowledge")}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => void claimsData.disputeClaim(claim.id)}
             style={styles.actionButtonSecondary}
           >
-            <Text style={styles.actionButtonSecondaryText}>ablehnen · Klärung nötig</Text>
+            <Text style={styles.actionButtonSecondaryText}>{t("claims.actions.dispute")}</Text>
           </Pressable>
         </View>
       ) : null}
 
       {expanded ? (
         <View style={styles.detailBlock}>
-          <Text style={styles.detailTitle}>Teilzahlungen</Text>
+          <Text style={styles.detailTitle}>{t("claims.payments.title")}</Text>
           {item.payments.length === 0 ? (
-            <Text style={styles.detailLine}>Noch keine Teilzahlungen.</Text>
+            <Text style={styles.detailLine}>{t("claims.payments.none")}</Text>
           ) : (
             item.payments.map((payment) => (
               <Text key={payment.id} style={styles.detailLine}>
                 {payment.paymentDate} · {formatMoney(payment.amount)} ·{" "}
                 {payment.confirmationStatus === "confirmed"
-                  ? "bestätigt"
+                  ? t("claims.payments.confirmed")
                   : payment.confirmationStatus === "pending_confirmation"
-                    ? "Bestätigung offen"
+                    ? t("claims.payments.pendingConfirmation")
                     : payment.confirmationStatus}
               </Text>
             ))
@@ -228,9 +249,9 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
                 style={styles.paymentInput}
                 value={paymentText}
                 onChangeText={setPaymentText}
-                placeholder="z. B. 5,00"
+                placeholder={t("claims.payments.inputPlaceholder")}
                 keyboardType="decimal-pad"
-                accessibilityLabel="Teilzahlung"
+                accessibilityLabel={t("claims.payments.inputLabel")}
               />
               <Pressable
                 accessibilityRole="button"
@@ -243,17 +264,17 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
                 }}
                 style={styles.actionButton}
               >
-                <Text style={styles.actionButtonText}>Teilzahlung erfassen</Text>
+                <Text style={styles.actionButtonText}>{t("claims.payments.record")}</Text>
               </Pressable>
             </View>
           ) : null}
 
-          <Text style={styles.detailTitle}>Erinnerung (nur für dich)</Text>
+          <Text style={styles.detailTitle}>{t("claims.reminder.title")}</Text>
           {reminder ? (
             <>
               <Text style={styles.detailLine}>
                 {formatReminderTime(reminder.remindAt)}
-                {item.reminderDue ? " · fällig" : ""}
+                {item.reminderDue ? ` · ${t("claims.reminder.dueSuffix")}` : ""}
               </Text>
               <View style={styles.actionRow}>
                 <Pressable
@@ -266,14 +287,16 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
                   }
                   style={styles.actionButton}
                 >
-                  <Text style={styles.actionButtonText}>später erinnern (+1 Tag)</Text>
+                  <Text style={styles.actionButtonText}>{t("claims.reminder.snooze")}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => void claimsData.disableClaimReminder(claim.id)}
                   style={styles.actionButtonSecondary}
                 >
-                  <Text style={styles.actionButtonSecondaryText}>nicht mehr erinnern</Text>
+                  <Text style={styles.actionButtonSecondaryText}>
+                    {t("claims.reminder.disable")}
+                  </Text>
                 </Pressable>
               </View>
             </>
@@ -283,13 +306,15 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
               onPress={() => void claimsData.setClaimReminder(claim.id, reminderTomorrow())}
               style={styles.actionButtonSecondary}
             >
-              <Text style={styles.actionButtonSecondaryText}>morgen erinnern</Text>
+              <Text style={styles.actionButtonSecondaryText}>
+                {t("claims.reminder.remindTomorrow")}
+              </Text>
             </Pressable>
           ) : (
-            <Text style={styles.detailLine}>Keine Erinnerung.</Text>
+            <Text style={styles.detailLine}>{t("claims.reminder.none")}</Text>
           )}
 
-          <Text style={styles.detailTitle}>Timeline</Text>
+          <Text style={styles.detailTitle}>{t("claims.timeline.title")}</Text>
           {item.events.map((event) => (
             <Text key={event.id} style={styles.detailLine}>
               {event.createdAt.slice(0, 10)} · {event.eventType}
@@ -302,7 +327,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
               onPress={() => void claimsData.archiveClaim(claim.id)}
               style={styles.actionButtonSecondary}
             >
-              <Text style={styles.actionButtonSecondaryText}>archivieren</Text>
+              <Text style={styles.actionButtonSecondaryText}>{t("claims.actions.archive")}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -312,6 +337,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
 }
 
 export function ClaimsScreen() {
+  const { t } = useTranslation();
   useLedgerVersion();
   const overview = claimsData.getClaimsOverview();
   const statusHint = claimsData.getClaimsStatusHint();
@@ -341,11 +367,11 @@ export function ClaimsScreen() {
   async function save() {
     const amount = parseAmount(amountText);
     if (!amount || amount <= 0) {
-      setFormError("Betrag muss größer als 0 sein.");
+      setFormError(t("claims.form.errorAmount"));
       return;
     }
     if (!selectedCounterpartyId && name.trim().length === 0) {
-      setFormError("Vorhandene Person wählen oder Name eingeben.");
+      setFormError(t("claims.form.errorPerson"));
       return;
     }
 
@@ -371,18 +397,15 @@ export function ClaimsScreen() {
 
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>Forderungen</Text>
-      <Text style={styles.screenPurpose}>
-        Private Schuldennotizen: bleiben privat, außer bewusst geteilt. Keine
-        Zahlungsausführung, keine Zahlungsaufforderungen.
-      </Text>
+      <Text style={styles.screenTitle}>{t("claims.title")}</Text>
+      <Text style={styles.screenPurpose}>{t("claims.purpose")}</Text>
       {statusHint ? <Text style={styles.compactHint}>{statusHint}</Text> : null}
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Pro Person</Text>
+        <Text style={styles.sectionLabel}>{t("claims.personSection.title")}</Text>
         <View style={styles.sectionCard}>
           {personOverviews.length === 0 ? (
-            <Text style={styles.detailLine}>Keine offenen Positionen.</Text>
+            <Text style={styles.detailLine}>{t("claims.personSection.empty")}</Text>
           ) : (
             personOverviews.map((personOverview) => (
               <PersonOverviewRow
@@ -392,23 +415,20 @@ export function ClaimsScreen() {
             ))
           )}
         </View>
-        <Text style={styles.compactHint}>
-          Private Forderungen und Gruppensalden pro Person: Einzelpositionen bleiben sichtbar,
-          netto ist nur die Zusammenfassung. Abgeschlossenes wandert in den Verlauf.
-        </Text>
+        <Text style={styles.compactHint}>{t("claims.personSection.hint")}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Neue Forderung</Text>
+        <Text style={styles.sectionLabel}>{t("claims.form.title")}</Text>
         <View style={styles.sectionCard}>
           <View style={styles.chipRow}>
             <Chip
-              label="Mir wird geschuldet"
+              label={t("claims.form.owedToMe")}
               active={direction === "owed_to_me"}
               onPress={() => setDirection("owed_to_me")}
             />
             <Chip
-              label="Ich schulde"
+              label={t("claims.form.owedByMe")}
               active={direction === "owed_by_me"}
               onPress={() => setDirection("owed_by_me")}
             />
@@ -417,13 +437,13 @@ export function ClaimsScreen() {
             {existingCounterparties.map((counterparty) => (
               <Chip
                 key={counterparty.id}
-                label={`${counterparty.displayName} · ${COUNTERPARTY_LABELS[counterparty.kind]}`}
+                label={`${counterparty.displayName} · ${t(COUNTERPARTY_KIND_KEYS[counterparty.kind])}`}
                 active={selectedCounterpartyId === counterparty.id}
                 onPress={() => setSelectedCounterpartyId(counterparty.id)}
               />
             ))}
             <Chip
-              label="Neue Person"
+              label={t("claims.form.newPerson")}
               active={selectedCounterpartyId === undefined}
               onPress={() => setSelectedCounterpartyId(undefined)}
             />
@@ -432,12 +452,12 @@ export function ClaimsScreen() {
             <>
               <View style={styles.chipRow}>
                 <Chip
-                  label="Extern (bleibt privat)"
+                  label={t("claims.form.externalPrivate")}
                   active={newPersonKind === "external_person"}
                   onPress={() => setNewPersonKind("external_person")}
                 />
                 <Chip
-                  label="Einladung (später verknüpfen)"
+                  label={t("claims.form.invitedLinkLater")}
                   active={newPersonKind === "invited_person"}
                   onPress={() => setNewPersonKind("invited_person")}
                 />
@@ -446,8 +466,8 @@ export function ClaimsScreen() {
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Name · wird als Person wiederverwendbar gespeichert"
-                accessibilityLabel="Name"
+                placeholder={t("claims.form.namePlaceholder")}
+                accessibilityLabel={t("claims.form.nameLabel")}
               />
             </>
           ) : null}
@@ -455,19 +475,23 @@ export function ClaimsScreen() {
             style={styles.input}
             value={amountText}
             onChangeText={setAmountText}
-            placeholder="Betrag, z. B. 12,50"
+            placeholder={t("claims.form.amountPlaceholder")}
             keyboardType="decimal-pad"
-            accessibilityLabel="Betrag"
+            accessibilityLabel={t("claims.form.amountLabel")}
           />
           <TextInput
             style={styles.input}
             value={purpose}
             onChangeText={setPurpose}
-            placeholder="Zweck (optional)"
-            accessibilityLabel="Zweck"
+            placeholder={t("claims.form.purposePlaceholder")}
+            accessibilityLabel={t("claims.form.purposeLabel")}
           />
           <View style={styles.chipRow}>
-            <Chip label="Ohne Gruppe" active={!groupId} onPress={() => setGroupId(undefined)} />
+            <Chip
+              label={t("claims.form.withoutGroup")}
+              active={!groupId}
+              onPress={() => setGroupId(undefined)}
+            />
             {groupOptions.map((group) => (
               <Chip
                 key={group.id}
@@ -479,13 +503,13 @@ export function ClaimsScreen() {
           </View>
           {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
           <Pressable accessibilityRole="button" onPress={() => void save()} style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Forderung speichern</Text>
+            <Text style={styles.saveButtonText}>{t("claims.form.save")}</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Offene Forderungen</Text>
+        <Text style={styles.sectionLabel}>{t("claims.sections.open")}</Text>
         {overview.openClaims.map((item) => (
           <ClaimCard key={item.claim.id} item={item} />
         ))}
@@ -495,7 +519,8 @@ export function ClaimsScreen() {
         <View style={styles.section}>
           <Pressable accessibilityRole="button" onPress={() => setShowClosed(!showClosed)}>
             <Text style={styles.sectionLabel}>
-              Abgeschlossen ({overview.closedClaims.length}) {showClosed ? "▾" : "▸"}
+              {t("claims.sections.closed", { n: overview.closedClaims.length })}{" "}
+              {showClosed ? "▾" : "▸"}
             </Text>
           </Pressable>
           {showClosed

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Pressable } from "react-native";
@@ -14,11 +15,11 @@ import {
 } from "../data";
 import type { InboxItemMock } from "../mock-data/inbox";
 
-const SETTLEMENT_ACTION_LABELS: Record<SettlementActionKind, string> = {
-  mark_paid: "als extern erledigt markieren",
-  confirm: "bestätigen",
-  reject: "ablehnen",
-};
+const SETTLEMENT_ACTION_KEYS = {
+  mark_paid: "inbox.settlement.actions.markPaid",
+  confirm: "inbox.settlement.actions.confirm",
+  reject: "inbox.settlement.actions.reject",
+} as const satisfies Record<SettlementActionKind, string>;
 
 function runSettlementAction(item: SettlementItemData, kind: SettlementActionKind): void {
   if (kind === "mark_paid") {
@@ -31,24 +32,27 @@ function runSettlementAction(item: SettlementItemData, kind: SettlementActionKin
 }
 
 function SettlementCard({ item }: { item: SettlementItemData }) {
+  const { t } = useTranslation();
   const direction =
     item.role === "payer"
-      ? `Du → ${item.counterpartyName}`
-      : `${item.counterpartyName} → Du`;
+      ? t("inbox.settlement.directionYouTo", { name: item.counterpartyName })
+      : t("inbox.settlement.directionToYou", { name: item.counterpartyName });
 
   return (
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>Externe Zahlung · {direction}</Text>
+        <Text style={styles.itemTitle}>
+          {t("inbox.settlement.title")} · {direction}
+        </Text>
         <Text style={styles.sourcePill}>{item.source}</Text>
       </View>
 
       <Text style={styles.itemDetail}>
-        {formatMoney(item.action.amount)} · Ledger-only: Zahlung passiert außerhalb der App.
+        {formatMoney(item.action.amount)} · {t("inbox.settlement.ledgerOnly")}
       </Text>
 
       <View style={styles.metaBlock}>
-        <Text style={styles.metaLabel}>Status</Text>
+        <Text style={styles.metaLabel}>{t("inbox.labels.status")}</Text>
         <Text style={styles.metaValue}>{item.statusLabel}</Text>
       </View>
 
@@ -59,7 +63,7 @@ function SettlementCard({ item }: { item: SettlementItemData }) {
           onPress={() => runSettlementAction(item, kind)}
           style={styles.settlementButton}
         >
-          <Text style={styles.settlementButtonText}>{SETTLEMENT_ACTION_LABELS[kind]}</Text>
+          <Text style={styles.settlementButtonText}>{t(SETTLEMENT_ACTION_KEYS[kind])}</Text>
         </Pressable>
       ))}
     </View>
@@ -67,6 +71,7 @@ function SettlementCard({ item }: { item: SettlementItemData }) {
 }
 
 function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock) {
+  const { t } = useTranslation();
   return (
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -77,12 +82,12 @@ function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock
       <Text style={styles.itemDetail}>{detail}</Text>
 
       <View style={styles.metaBlock}>
-        <Text style={styles.metaLabel}>Status</Text>
+        <Text style={styles.metaLabel}>{t("inbox.labels.status")}</Text>
         <Text style={styles.metaValue}>{status}</Text>
       </View>
 
       <View style={styles.actionRow}>
-        <Text style={styles.actionLabel}>Aktion</Text>
+        <Text style={styles.actionLabel}>{t("inbox.labels.action")}</Text>
         <Text style={styles.actionValue}>{actionLabel}</Text>
       </View>
     </View>

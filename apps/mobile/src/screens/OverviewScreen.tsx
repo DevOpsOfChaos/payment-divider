@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
@@ -38,16 +39,14 @@ function BalanceRow({ person, amount, source, statusHint }: OverviewBalanceRow) 
 }
 
 export function OverviewScreen() {
+  const { t } = useTranslation();
   useLedgerVersion();
   const overview = appRepositories.getOverview();
 
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>Übersicht</Text>
-      <Text style={styles.screenPurpose}>
-        Persönliche Übersicht über offene Salden, Aktionen und relevante Gruppen
-        ohne Zahlungsfunktion im App-Flow.
-      </Text>
+      <Text style={styles.screenTitle}>{t("overview.title")}</Text>
+      <Text style={styles.screenPurpose}>{t("overview.purpose")}</Text>
 
       <View style={styles.balanceCard}>
         <Text style={styles.eyebrow}>{overview.balance.heading}</Text>
@@ -61,7 +60,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Du bekommst</Text>
+        <Text style={styles.sectionTitle}>{t("overview.sections.receivables")}</Text>
         <View style={styles.sectionList}>
           {overview.receivables.map((entry) => (
             <BalanceRow key={`${entry.person}-${entry.source}`} {...entry} />
@@ -70,7 +69,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Du schuldest</Text>
+        <Text style={styles.sectionTitle}>{t("overview.sections.debts")}</Text>
         <View style={styles.sectionList}>
           {overview.debts.map((entry) => (
             <BalanceRow key={`${entry.person}-${entry.source}`} {...entry} />
@@ -79,7 +78,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Offene Aktionen</Text>
+        <Text style={styles.sectionTitle}>{t("overview.sections.openActions")}</Text>
         <View style={styles.sectionList}>
           {overview.openActions.map((item) => (
             <View key={item.label} style={styles.infoRow}>
@@ -91,7 +90,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Letzte Aktivität</Text>
+        <Text style={styles.sectionTitle}>{t("overview.sections.recentActivity")}</Text>
         <View style={styles.sectionList}>
           {overview.recentActivity.map((item) => (
             <View key={`${item.actor}-${item.event}-${item.dateLabel}`} style={styles.infoRow}>
@@ -108,7 +107,7 @@ export function OverviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gruppen mit Aufmerksamkeit</Text>
+        <Text style={styles.sectionTitle}>{t("overview.sections.groupAttention")}</Text>
         <View style={styles.sectionList}>
           {overview.groupAttention.map((item) => (
             <View key={`${item.group}-${item.reason}`} style={styles.infoRow}>
