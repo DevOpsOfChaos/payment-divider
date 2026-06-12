@@ -20,6 +20,11 @@
 --      may record a payment only as themselves, claim events only carry the
 --      acting user, and reminders stay personal (owner-only visibility,
 --      never insertable for someone else; snooze/disable only on own rows).
+--   9. 1A side-table write paths (#127): profiles are visible to fellow
+--      group members only; inbox items are strictly own (insert/resolve own,
+--      foreign updates hit zero rows, non-status columns pinned); expenses
+--      support a creator-only one-way soft delete with all ledger columns
+--      immutable.
 
 begin;
 
@@ -582,6 +587,144 @@ with updated as (
 select pg_temp.assert(
   (select count(*) from updated) = 1,
   'counterparty B may disable their own reminder');
+reset role;
+
+-- ------------------------------- 9. 1A side-table write paths (#127) ---
+
+-- Profiles: visible to yourself and fellow group members, nobody else.
+-- A and B share Group AB; C is in no shared group with A.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+select pg_temp.assert(
+  exists (select 1 from public.profiles
+          where id = '00000000-0000-0000-0000-00000000000a'),
+  'fellow group member B sees A''s profile');
+reset role;
+
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000c');
+select pg_temp.assert(
+  not exists (select 1 from public.profiles
+              where id = '00000000-0000-0000-0000-00000000000a'),
+  'outsider C cannot see A''s profile');
+
+-- Inbox: strictly own. C creates an own item, cannot create one for A.
+insert into public.inbox_items (id, user_id, type)
+values
+  ('00000000-0000-0000-0000-0000000000c2',
+   '00000000-0000-0000-0000-00000000000c', 'confirmation_pending');
+do $$
+begin
+  begin
+    insert into public.inbox_items (user_id, type)
+    values ('00000000-0000-0000-0000-00000000000a', 'confirmation_pending');
+    raise exception 'FAIL: C could create an inbox item for A';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: inbox items cannot be created for someone else (42501)';
+  end;
+end;
+$$;
+
+-- Owner may resolve; the trigger stamps resolved_at.
+update public.inbox_items
+set status = 'resolved'
+where id = '00000000-0000-0000-0000-0000000000c2';
+select pg_temp.assert(
+  (select resolved_at is not null from public.inbox_items
+   where id = '00000000-0000-0000-0000-0000000000c2'),
+  'owner C may resolve their inbox item and resolved_at is stamped');
+
+-- Non-status columns are pinned by the trigger.
+do $$
+begin
+  begin
+    update public.inbox_items
+    set type = 'something_else'
+    where id = '00000000-0000-0000-0000-0000000000c2';
+    raise exception 'FAIL: inbox item type was mutable';
+  exception
+    when others then
+      if sqlerrm like '%resolution status%' then
+        raise notice 'PASS: inbox item non-status columns are pinned';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+reset role;
+
+-- Foreign inbox items are invisible and not updatable (zero rows).
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+with updated as (
+  update public.inbox_items
+  set status = 'dismissed'
+  where id = '00000000-0000-0000-0000-0000000000c2'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 0,
+  'B cannot resolve C''s inbox item');
+
+-- Expenses: ledger columns stay immutable for everyone, incl. the creator.
+-- B created 'Smoke expense' in section 2.
+do $$
+begin
+  begin
+    update public.expenses
+    set amount_minor = 1
+    where id = '00000000-0000-0000-0000-0000000000f1';
+    raise exception 'FAIL: expense amount was mutable';
+  exception
+    when others then
+      if sqlerrm like '%soft-delete marker%' then
+        raise notice 'PASS: expense ledger columns are immutable';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+-- Creator B may soft-delete their own expense exactly once.
+update public.expenses
+set deleted_at = now()
+where id = '00000000-0000-0000-0000-0000000000f1';
+select pg_temp.assert(
+  (select deleted_at is not null from public.expenses
+   where id = '00000000-0000-0000-0000-0000000000f1'),
+  'creator B may soft-delete their own expense');
+
+-- Undo is rejected.
+do $$
+begin
+  begin
+    update public.expenses
+    set deleted_at = null
+    where id = '00000000-0000-0000-0000-0000000000f1';
+    raise exception 'FAIL: expense soft delete could be undone';
+  exception
+    when others then
+      if sqlerrm like '%cannot be undone%' then
+        raise notice 'PASS: expense soft delete is one-way';
+      else
+        raise;
+      end if;
+  end;
+end;
+$$;
+reset role;
+
+-- Member A (not the creator) cannot soft-delete B's expense: zero rows.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+with updated as (
+  update public.expenses
+  set deleted_at = now()
+  where id = '00000000-0000-0000-0000-0000000000f1'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 0,
+  'non-creator A cannot soft-delete B''s expense');
 reset role;
 
 rollback;

@@ -93,14 +93,14 @@ works tokenless against the local stack, which this repo requires (no
 
 ## RLS behavior smoke tests
 
-`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores), server-side claim status transitions (#106), and the claim write paths used by the supabase-local adapter (payments only as oneself, events only as the acting user, reminders strictly personal). The whole test runs in one transaction and rolls back, leaving the database clean.
+`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores), server-side claim status transitions (#106), the claim write paths used by the supabase-local adapter (payments only as oneself, events only as the acting user, reminders strictly personal), and the 1A side-table write paths (#127: profiles visible to fellow group members only, inbox items strictly own with pinned non-status columns, creator-only one-way expense soft delete). The whole test runs in one transaction and rolls back, leaving the database clean.
 
 ```powershell
 npx supabase db start
-corepack pnpm db:rls-test   # 33 assertions, runs psql inside the local db container
+corepack pnpm db:rls-test   # 43 assertions, runs psql inside the local db container
 ```
 
-Last run 2026-06-12: 33/33 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
+Last run 2026-06-12: 43/43 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
 
 ## Continuous integration
 
