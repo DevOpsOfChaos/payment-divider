@@ -96,18 +96,18 @@ Smoke: `supabase/tests/rls_smoke_test.sql`, 33 assertions
 
 | Table | Read | Write | Fits class | Smoke |
 | --- | --- | --- | --- | --- |
-| `profiles` | own + fellow group members | insert/update own | ✓ | indirect only |
-| `friend_connections` | participants | **none** | table unused — decide keep/drop before alpha | none |
+| `profiles` | own + fellow group members | insert/update own | ✓ | ✓ (#127) |
+| `friend_connections` | participants | **none** | dormant by decision (#127); build flow or drop before alpha → #132 | none |
 | `groups` | members | insert as creator | ✓ | ✓ |
 | `group_members` | fellow members | insert self-as-creator / by admin; **no leave/role-change** | OK for alpha (invite flow later) | ✓ (visibility) |
 | `group_contexts` | members | insert members, update admin | ✓ | indirect |
-| `context_members` | members | **none** (seed only) | gap: participation not editable | none |
-| `member_availability` | members | **none** (seed only) | gap: pause not editable | none |
-| `expenses` | members | insert members; **no update** → `deleted_at` unreachable from client | OK-ish; soft-delete path missing | ✓ |
+| `context_members` | members | **none** (seed only) | read-only by decision (#127) until membership flows land → #131 | none |
+| `member_availability` | members | **none** (seed only) | read-only by decision (#127) until membership flows land → #131 | none |
+| `expenses` | members | insert members; creator-only one-way soft delete (`deleted_at`), ledger columns trigger-pinned (#127) | ✓ | ✓ |
 | `expense_shares` | members | insert members | ✓ | indirect |
 | `payment_actions` | members | insert involved; status transitions payer/payee via trigger-checked policies | ✓ | ✓ |
 | `timeline_events` | members | insert members (best effort) | ✓ | indirect |
-| `inbox_items` | own | insert own; **no update** → cannot resolve | gap | none |
+| `inbox_items` | own | insert own; resolve/dismiss own, non-status columns trigger-pinned (#127) | ✓ | ✓ |
 | `counterparties` | own | insert/update own | ✓ (owner-private) | ✓ |
 | `counterparty_aliases` | own (via owner check) | insert/update own | ✓ | indirect |
 | `claims` | creator inline + shared linked counterparty (security-definer helper) | insert own; update participants, counterparty status-only (trigger), transitions server-enforced (#106, parity-checked) | ✓ | ✓ (incl. #119 RETURNING regression) |
@@ -133,8 +133,8 @@ deployment.
 | Migration deploy path | defined way to apply `supabase/migrations/` to the shared project (CLI `db push` from a maintainer machine or CI job with scoped token — decision + doc) | **Blocker** |
 | RLS verification against shared project | run the smoke suite (or an equivalent seeded check) once against the alpha project before invites; local 33/33 is necessary but not sufficient | **Blocker** |
 | Seed/test data concept | shared project starts empty; no demo seed on shared DB; testers create real data — document expectations | Can follow |
-| RLS smoke gaps (see 3) | add cases for profiles visibility, inbox ownership, context_members/member_availability once they get write paths (#127) | Can follow |
-| Unused/partial tables | decide keep/drop `friend_connections`; write paths for `context_members`, `member_availability`, `inbox_items` resolve, expense soft-delete (#127) | Can follow |
+| RLS smoke gaps (see 3) | **done** (#127): profiles visibility, inbox ownership/resolve, expense soft-delete covered; participation/availability cases follow with their write paths (#131) | Done |
+| Unused/partial tables | inbox resolve + expense soft-delete **done** (#127); `context_members`/`member_availability` read-only until membership flows (#131); `friend_connections` decision → #132 | Mostly done |
 | Backup/key handling | stays #109 (premium, E2E) — explicitly **not** alpha | Not in alpha |
 | Push, contact book, offline sync, payment anything | excluded by #93 boundary | Not in alpha |
 
@@ -149,9 +149,10 @@ resolved via #126 — owner-private EU rows):
 4. Migration deploy path.
 5. RLS smoke (or equivalent) green against the shared project.
 
-**Can follow during alpha**: seed/testdata doc, additional smoke cases,
-write paths for participation/availability/inbox resolve, friend_connections
-decision, expense soft-delete path.
+**Can follow during alpha**: seed/testdata doc, participation/availability
+write paths with the membership flows (#131), friend_connections decision
+(#132). Inbox resolve, expense soft-delete and the matching smoke cases are
+done (#127).
 
 **Deliberately not part of alpha**: encrypted backup & key handling (#109),
 premium features, push/notifications, contact book, offline sync, public
