@@ -69,16 +69,18 @@ It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbi
 
 The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PUBLIC_DATA_SOURCE=supabase-local` in `apps/mobile/.env` (template: `.env.example` at the repo root) selects the local-Supabase mode, configured via `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLIC_KEY` — both printed by `supabase start`. Missing configuration falls back to local-demo with a dev hint instead of crashing. Only `.env.example` may be committed; the boundary check enforces this and rejects secret-like values in it.
 
+In `supabase-local` mode the ledger screens (groups, expenses, settlement) read from the local stack with the 1A write paths (group, expense). Claims additionally go through `apps/mobile/src/data/supabase-claims.ts` (#105): counterparties, claims, claim payments and claim events are read and written behind the `ClaimsRepository` interface, status changes run through `canTransitionClaimStatus` client-side with the #106 trigger as server authority, and the person balance overview stays a client-side derivation via core (`buildPersonBalanceOverview`) — there is no person-balance table. Claim reminders have schema and RLS coverage but no adapter/UI yet (follow-up issue).
+
 ## RLS behavior smoke tests
 
-`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, and private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores). The whole test runs in one transaction and rolls back, leaving the database clean.
+`supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores), server-side claim status transitions (#106), and the claim write paths used by the supabase-local adapter (payments only as oneself, events only as the acting user, reminders strictly personal). The whole test runs in one transaction and rolls back, leaving the database clean.
 
 ```powershell
 npx supabase db start
-corepack pnpm db:rls-test   # 16 assertions, runs psql inside the local db container
+corepack pnpm db:rls-test   # 29 assertions, runs psql inside the local db container
 ```
 
-Last run 2026-06-12: 16/16 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
+Last run 2026-06-12: 29/29 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
 
 ## Continuous integration
 

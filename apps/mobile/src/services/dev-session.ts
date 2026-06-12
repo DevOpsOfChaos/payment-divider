@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabase-client";
+import { reloadSupabaseClaims } from "../data/supabase-claims";
 import { reloadSupabaseData } from "../data/supabase-repositories";
 
 // Dev-only session helper for the supabase-local mode. Signs a fixed local
@@ -56,6 +57,7 @@ export async function startDevSession(): Promise<DevSessionResult> {
       .upsert({ id: userId, display_name: DEV_DISPLAY_NAME, username: DEV_USERNAME });
     if (profileError) {
       reloadSupabaseData();
+      reloadSupabaseClaims();
       return {
         ok: true,
         message: `Session aktiv, Profil-Upsert fehlgeschlagen: ${profileError.message}`,
@@ -64,6 +66,7 @@ export async function startDevSession(): Promise<DevSessionResult> {
   }
 
   reloadSupabaseData();
+  reloadSupabaseClaims();
   return { ok: true, message: "Lokale Dev-Session aktiv." };
 }
 
@@ -74,5 +77,6 @@ export async function endDevSession(): Promise<DevSessionResult> {
   }
   await client.auth.signOut();
   reloadSupabaseData();
+  reloadSupabaseClaims();
   return { ok: true, message: "Dev-Session beendet." };
 }

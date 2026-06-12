@@ -9,20 +9,7 @@ import type {
   PersonBalancePosition,
 } from "@payment-divider/core";
 
-import { formatMoney, useLedgerVersion } from "../data";
-import {
-  acknowledgeClaim,
-  addClaim,
-  archiveClaim,
-  disputeClaim,
-  getClaimsOverview,
-  getCounterparties,
-  getOrCreateCounterparty,
-  getPersonBalanceOverview,
-  recordClaimPayment,
-  type ClaimListItem,
-} from "../data/claims-store";
-import { MOCK_GROUPS, MOCK_USERS, MOCK_CURRENT_USER_ID } from "../mock-data/ledger";
+import { claimsData, formatMoney, useLedgerVersion, type ClaimListItem } from "../data";
 
 // Parses German money input like "12,50" into integer cents.
 function parseAmount(rawText: string): number | undefined {
@@ -69,9 +56,7 @@ function Chip({
 
 function positionLabel(position: PersonBalancePosition): string {
   if (position.sourceType === "group_balance") {
-    const groupName =
-      MOCK_GROUPS.find((group) => group.id === position.sourceId)?.name ?? position.sourceId;
-    return `Gruppensaldo ${groupName}`;
+    return `Gruppensaldo ${position.label ?? position.sourceId}`;
   }
   return position.label ?? "Forderung ohne Zweck";
 }
@@ -147,18 +132,10 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
 
   const directionLabel =
     claim.direction === "owed_to_me" ? "schuldet dir" : "du schuldest";
-  const counterpartyDisplay = item.incoming
-    ? MOCK_USERS.find((user) => user.id === claim.creatorUserId)?.displayName ??
-      claim.creatorUserId
-    : item.counterparty?.displayName ?? claim.counterpartyId;
-  const groupName = claim.groupId
-    ? MOCK_GROUPS.find((group) => group.id === claim.groupId)?.name
-    : undefined;
+  const counterpartyDisplay = item.counterpartyName;
+  const groupName = item.groupName;
   const paymentAmount = parseAmount(paymentText);
-  const canReact =
-    item.incoming &&
-    item.counterparty?.linkedUserId === MOCK_CURRENT_USER_ID &&
-    (claim.status === "linked_open" || claim.status === "disputed");
+  const canReact = item.canReact;
 
   return (
     <View style={styles.claimCard}>
@@ -179,7 +156,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
             <Text style={styles.badge}>{COUNTERPARTY_LABELS[item.counterparty.kind]}</Text>
           ) : null}
           <Text style={styles.badge}>{LIFECYCLE_LABELS[item.lifecycle]}</Text>
-          {!item.linked ? <Text style={styles.badge}>nur lokal · privat</Text> : null}
+          {!item.linked ? <Text style={styles.badge}>privat · nicht geteilt</Text> : null}
           {item.remaining < claim.amount ? (
             <Text style={styles.badge}>
               {formatMoney(claim.amount - item.remaining)} von {formatMoney(claim.amount)} bezahlt
@@ -192,14 +169,14 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
         <View style={styles.actionRow}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => acknowledgeClaim(claim.id)}
+            onPress={() => void claimsData.acknowledgeClaim(claim.id)}
             style={styles.actionButton}
           >
             <Text style={styles.actionButtonText}>bestätigen</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => disputeClaim(claim.id)}
+            onPress={() => void claimsData.disputeClaim(claim.id)}
             style={styles.actionButtonSecondary}
           >
             <Text style={styles.actionButtonSecondaryText}>ablehnen · Klärung nötig</Text>
@@ -240,7 +217,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
                 disabled={!paymentAmount}
                 onPress={() => {
                   if (paymentAmount) {
-                    recordClaimPayment(claim.id, paymentAmount);
+                    void claimsData.recordClaimPayment(claim.id, paymentAmount);
                     setPaymentText("");
                   }
                 }}
@@ -261,7 +238,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
           {!item.incoming && item.lifecycle !== "archived" ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => archiveClaim(claim.id)}
+              onPress={() => void claimsData.archiveClaim(claim.id)}
               style={styles.actionButtonSecondary}
             >
               <Text style={styles.actionButtonSecondaryText}>archivieren</Text>
@@ -275,9 +252,11 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
 
 export function ClaimsScreen() {
   useLedgerVersion();
-  const overview = getClaimsOverview();
+  const overview = claimsData.getClaimsOverview();
+  const statusHint = claimsData.getClaimsStatusHint();
+  const groupOptions = claimsData.getClaimGroupOptions();
   // Rows with only closed positions stay listed so the history remains reachable.
-  const personOverviews = getPersonBalanceOverview().filter(
+  const personOverviews = claimsData.getPersonBalanceOverview().filter(
     (personOverview) =>
       personOverview.openPositions.length > 0 || personOverview.closedPositions.length > 0,
   );
@@ -296,34 +275,33 @@ export function ClaimsScreen() {
   const [formError, setFormError] = useState<string | undefined>(undefined);
 
   // Existing reusable person records: pick one or create a new private one.
-  const existingCounterparties = getCounterparties();
+  const existingCounterparties = claimsData.getCounterparties();
 
-  function save() {
+  async function save() {
     const amount = parseAmount(amountText);
     if (!amount || amount <= 0) {
       setFormError("Betrag muss größer als 0 sein.");
       return;
     }
-
-    let counterpartyId = selectedCounterpartyId;
-    if (!counterpartyId) {
-      if (name.trim().length === 0) {
-        setFormError("Vorhandene Person wählen oder Name eingeben.");
-        return;
-      }
-      counterpartyId = getOrCreateCounterparty({
-        kind: newPersonKind,
-        displayName: name.trim(),
-      }).id;
+    if (!selectedCounterpartyId && name.trim().length === 0) {
+      setFormError("Vorhandene Person wählen oder Name eingeben.");
+      return;
     }
 
-    addClaim({
+    const result = await claimsData.addClaim({
       direction,
-      counterpartyId,
+      counterpartyId: selectedCounterpartyId,
+      newCounterparty: selectedCounterpartyId
+        ? undefined
+        : { kind: newPersonKind, displayName: name.trim() },
       amount,
       purpose: purpose.trim() || undefined,
       groupId,
     });
+    if (!result.ok) {
+      setFormError(result.message);
+      return;
+    }
     setName("");
     setAmountText("");
     setPurpose("");
@@ -334,8 +312,10 @@ export function ClaimsScreen() {
     <View style={styles.screenCard}>
       <Text style={styles.screenTitle}>Forderungen</Text>
       <Text style={styles.screenPurpose}>
-        Private Schuldennotizen: nur lokal, keine Zahlungsausführung, keine Mahnungen.
+        Private Schuldennotizen: bleiben privat, außer bewusst geteilt. Keine
+        Zahlungsausführung, keine Zahlungsaufforderungen.
       </Text>
+      {statusHint ? <Text style={styles.compactHint}>{statusHint}</Text> : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Pro Person</Text>
@@ -427,7 +407,7 @@ export function ClaimsScreen() {
           />
           <View style={styles.chipRow}>
             <Chip label="Ohne Gruppe" active={!groupId} onPress={() => setGroupId(undefined)} />
-            {MOCK_GROUPS.map((group) => (
+            {groupOptions.map((group) => (
               <Chip
                 key={group.id}
                 label={group.name}
@@ -437,8 +417,8 @@ export function ClaimsScreen() {
             ))}
           </View>
           {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
-          <Pressable accessibilityRole="button" onPress={save} style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Forderung lokal speichern</Text>
+          <Pressable accessibilityRole="button" onPress={() => void save()} style={styles.saveButton}>
+            <Text style={styles.saveButtonText}>Forderung speichern</Text>
           </Pressable>
         </View>
       </View>

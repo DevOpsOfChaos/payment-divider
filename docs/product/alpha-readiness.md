@@ -25,8 +25,13 @@ MVP 1A view in `mvp1a-readiness.md` for data-mode questions.
   (+ equal shares + best-effort timeline event) through the conservative RLS
   policies. Settlement transitions are not yet wired to the UI in this mode
   (read-only settlement cards).
+- Claims (#105): counterparties, claims, claim payments and claim events read
+  and written via `supabase-claims.ts`; status actions validated client-side
+  (core transition table) and enforced server-side (#106 trigger). Person
+  balance overview stays derived in the client; no person-balance table.
+  Claim reminders have schema + RLS but no adapter/UI yet.
 - Verified: migrations replay cleanly (`db reset`), `db lint` clean, RLS
-  behavior smoke tests 9/9 PASS (`pnpm db:rls-test`).
+  behavior smoke tests 29/29 PASS (`pnpm db:rls-test`).
 
 ## Setup
 
@@ -51,7 +56,9 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
   setup (all members preselected).
 - Dev session uses fixed local credentials — meaningless outside the local
   stack, but must never be reused in any deployed environment.
-- No generated DB types; the row mapping in the adapter is hand-written.
+- No generated DB types; the row mapping in the adapters is hand-written.
+- Claims in supabase-local are verified via typecheck + RLS smoke tests only;
+  no device/emulator run yet (device QA track: #107).
 
 ## Next MVP 1B block
 
