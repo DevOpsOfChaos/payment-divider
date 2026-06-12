@@ -58,7 +58,9 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
   setup (all members preselected).
 - Dev session uses fixed local credentials — meaningless outside the local
   stack, but must never be reused in any deployed environment.
-- No generated DB types; the row mapping in the adapters is hand-written.
+- DB types are generated and committed (#118, `pnpm db:gen-types`); the
+  remaining hand-written part is the column→core-field mapping incl.
+  narrowing CHECK-constrained text columns to core unions.
 - Claims/person balance/reminders passed a manual emulator QA run on
   2026-06-12 (Android emulator, Expo Go, both data modes — see
   `docs/development/demo-script.md`); findings tracked in #122/#123. Expo Go
@@ -71,7 +73,7 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
 - Membership flows (invite, join, leave) with matching write policies.
 - Visibility profiles and the PaymentMethod model (masked, revocable) per the
   existing 1B scope.
-- Generated database types and adapter tests.
+- Adapter tests (DB types are generated since #118).
 
 ## Before any public launch
 
