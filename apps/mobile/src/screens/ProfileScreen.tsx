@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 
 import {
@@ -20,6 +21,7 @@ import type {
 } from "../mock-data/profile";
 
 function AuthCard() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,15 +44,15 @@ function AuthCard() {
   if (sessionUserId) {
     return (
       <View style={styles.subCard}>
-        <Text style={styles.subCardTitle}>Konto</Text>
-        <Text style={styles.subCardDetail}>Angemeldet · Daten werden RLS-gescoped geladen.</Text>
+        <Text style={styles.subCardTitle}>{t("auth.account.title")}</Text>
+        <Text style={styles.subCardDetail}>{t("auth.account.signedIn")}</Text>
         <Pressable
           accessibilityRole="button"
           disabled={busy}
           onPress={() => run(signOut)}
           style={styles.devButton}
         >
-          <Text style={styles.devButtonText}>Abmelden</Text>
+          <Text style={styles.devButtonText}>{t("auth.account.signOut")}</Text>
         </Pressable>
         {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
       </View>
@@ -60,25 +62,25 @@ function AuthCard() {
   const isSignUp = mode === "sign-up";
   return (
     <View style={styles.subCard}>
-      <Text style={styles.subCardTitle}>{isSignUp ? "Konto erstellen" : "Anmelden"}</Text>
-      <Text style={styles.subCardDetail}>
-        E-Mail und Passwort. Keine Session bedeutet: RLS blendet alle Daten aus.
+      <Text style={styles.subCardTitle}>
+        {isSignUp ? t("auth.signUp.title") : t("auth.signIn.title")}
       </Text>
+      <Text style={styles.subCardDetail}>{t("auth.form.hint")}</Text>
       <TextInput
-        accessibilityLabel="E-Mail"
+        accessibilityLabel={t("auth.form.email")}
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
         onChangeText={setEmail}
-        placeholder="E-Mail"
+        placeholder={t("auth.form.email")}
         style={styles.authInput}
         value={email}
       />
       <TextInput
-        accessibilityLabel="Passwort"
+        accessibilityLabel={t("auth.form.password")}
         autoCapitalize="none"
         onChangeText={setPassword}
-        placeholder="Passwort"
+        placeholder={t("auth.form.password")}
         secureTextEntry
         style={styles.authInput}
         value={password}
@@ -86,17 +88,17 @@ function AuthCard() {
       {isSignUp ? (
         <>
           <TextInput
-            accessibilityLabel="Anzeigename"
+            accessibilityLabel={t("auth.form.displayName")}
             onChangeText={setDisplayName}
-            placeholder="Anzeigename"
+            placeholder={t("auth.form.displayName")}
             style={styles.authInput}
             value={displayName}
           />
           <TextInput
-            accessibilityLabel="Benutzername (optional)"
+            accessibilityLabel={t("auth.form.usernameOptional")}
             autoCapitalize="none"
             onChangeText={setUsername}
-            placeholder="Benutzername (optional)"
+            placeholder={t("auth.form.usernameOptional")}
             style={styles.authInput}
             value={username}
           />
@@ -117,7 +119,9 @@ function AuthCard() {
         }
         style={styles.devButton}
       >
-        <Text style={styles.devButtonText}>{isSignUp ? "Konto erstellen" : "Anmelden"}</Text>
+        <Text style={styles.devButtonText}>
+          {isSignUp ? t("auth.signUp.action") : t("auth.signIn.action")}
+        </Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -125,7 +129,7 @@ function AuthCard() {
         onPress={() => setMode(isSignUp ? "sign-in" : "sign-up")}
       >
         <Text style={styles.authSwitchText}>
-          {isSignUp ? "Schon ein Konto? Anmelden" : "Neu hier? Konto erstellen"}
+          {isSignUp ? t("auth.switch.toSignIn") : t("auth.switch.toSignUp")}
         </Text>
       </Pressable>
       {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
@@ -134,6 +138,7 @@ function AuthCard() {
 }
 
 function DevSessionCard() {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | undefined>(undefined);
   const sessionUserId = getSupabaseSessionUserId();
@@ -150,11 +155,9 @@ function DevSessionCard() {
 
   return (
     <View style={styles.subCard}>
-      <Text style={styles.subCardTitle}>Lokale Dev-Session</Text>
+      <Text style={styles.subCardTitle}>{t("devSession.title")}</Text>
       <Text style={styles.subCardDetail}>
-        {sessionUserId
-          ? "Session aktiv · eigenes Profil kommt aus der lokalen Datenbank."
-          : "Keine Session · RLS blendet alle Daten aus. Nur für lokale Entwicklung, keine Production-UX."}
+        {sessionUserId ? t("devSession.active") : t("devSession.none")}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -163,7 +166,7 @@ function DevSessionCard() {
         style={styles.devButton}
       >
         <Text style={styles.devButtonText}>
-          {sessionUserId ? "Dev-Session beenden" : "Dev-Session starten (nur lokal)"}
+          {sessionUserId ? t("devSession.end") : t("devSession.start")}
         </Text>
       </Pressable>
       {sessionUserId ? (
@@ -181,7 +184,7 @@ function DevSessionCard() {
           }
           style={styles.devButton}
         >
-          <Text style={styles.devButtonText}>Demo-Gruppe lokal anlegen</Text>
+          <Text style={styles.devButtonText}>{t("devSession.createDemoGroup")}</Text>
         </Pressable>
       ) : null}
       {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
