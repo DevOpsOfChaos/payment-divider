@@ -52,13 +52,13 @@ async function main() {
     displayName: "Smoke Tester",
     username: `smoke-${userId.slice(0, 8)}`,
   });
-  check("profile bootstrap creates own row", created.ok && created.created, created.message);
+  check("profile bootstrap creates own row", created.ok && created.created, created.message?.key);
 
   // 3. Bootstrap is idempotent: second call must not overwrite or fail.
   const again = await ensureOwnProfile(asBootstrapClient(client), userId, {
     displayName: "Should Not Overwrite",
   });
-  check("profile bootstrap is idempotent", again.ok && !again.created, again.message);
+  check("profile bootstrap is idempotent", again.ok && !again.created, again.message?.key);
 
   // 4. Forbidden: inserting a profiles row for a different user id must be
   // rejected by RLS (profiles_insert_own).

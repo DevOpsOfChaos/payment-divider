@@ -17,6 +17,7 @@ import type {
   OverviewBalanceRowMock,
 } from "../mock-data/overview";
 import type { ProfileScreenMock } from "../mock-data/profile";
+import type { ServiceMessage } from "../i18n/service-message";
 
 export interface OverviewData {
   balance: OverviewBalanceMock;
@@ -92,7 +93,8 @@ export interface ProfileRepository {
 
 export interface WriteResult {
   ok: boolean;
-  message: string;
+  // Stable message key + params; the UI translates via formatServiceMessage.
+  message: ServiceMessage;
 }
 
 export interface CreateGroupInput {

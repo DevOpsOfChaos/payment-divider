@@ -29,10 +29,5 @@ export function isDevSessionAllowed(): boolean {
   return getAppEnv() === "local";
 }
 
-// Human-readable note for screens when dev-only tooling is hidden.
-export function getDevSessionBlockedHint(): string {
-  return (
-    `Dev-Session ist in der Umgebung "${getAppEnv()}" gesperrt. ` +
-    "Shared Builds brauchen echte Supabase-Auth (Folge-Issue)."
-  );
-}
+// The user-facing blocked notice lives in the locale files
+// (service.devSession.blocked); services attach it via its message key.

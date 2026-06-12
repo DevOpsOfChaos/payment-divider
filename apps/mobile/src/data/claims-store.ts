@@ -39,6 +39,7 @@ import type {
   NewCounterpartyInput,
 } from "./claims-repository";
 import type { WriteResult } from "./repositories";
+import { msg } from "../i18n/service-message";
 
 // Session-only claims store for the local demo. Claims reference reusable
 // counterparty records; free-text persons are created once and reused.
@@ -116,7 +117,7 @@ function addClaim(input: AddClaimInput): WriteResult {
     counterparty = getOrCreateCounterparty(input.newCounterparty);
   }
   if (!counterparty) {
-    return { ok: false, message: "Person nicht gefunden." };
+    return { ok: false, message: msg("service.claims.personNotFound") };
   }
   const linked = counterparty.kind === "app_user";
   const id = `claim-${Date.now()}-${claims.length}`;
@@ -143,13 +144,13 @@ function addClaim(input: AddClaimInput): WriteResult {
   ];
   appendEvent(id, "claim_created");
   notifyExternalDataChanged();
-  return { ok: true, message: "Forderung lokal gespeichert." };
+  return { ok: true, message: msg("service.claims.claimSavedLocal") };
 }
 
 function recordClaimPayment(claimId: EntityId, amount: number): WriteResult {
   const claim = claims.find((candidate) => candidate.id === claimId);
   if (!claim || amount <= 0) {
-    return { ok: false, message: "Teilzahlung nicht möglich." };
+    return { ok: false, message: msg("service.claims.paymentNotPossible") };
   }
   payments = [
     ...payments,
@@ -173,7 +174,7 @@ function recordClaimPayment(claimId: EntityId, amount: number): WriteResult {
   ];
   appendEvent(claimId, "payment_recorded");
   notifyExternalDataChanged();
-  return { ok: true, message: "Teilzahlung erfasst." };
+  return { ok: true, message: msg("service.claims.paymentRecorded") };
 }
 
 // Validated status change: rejects transitions the dispute workflow forbids
@@ -185,7 +186,7 @@ function applyClaimTransition(
 ): WriteResult {
   const claim = claims.find((candidate) => candidate.id === claimId);
   if (!claim || !canTransitionClaimStatus(claim.status, to)) {
-    return { ok: false, message: "Statuswechsel nicht erlaubt." };
+    return { ok: false, message: msg("service.claims.transitionNotAllowed") };
   }
   updateClaim(claimId, {
     status: to,
@@ -193,7 +194,7 @@ function applyClaimTransition(
   });
   appendEvent(claimId, eventType);
   notifyExternalDataChanged();
-  return { ok: true, message: "Status aktualisiert." };
+  return { ok: true, message: msg("service.claims.statusUpdated") };
 }
 
 function activeOwnReminder(claimId: EntityId): ClaimReminder | undefined {
@@ -208,10 +209,10 @@ function activeOwnReminder(claimId: EntityId): ClaimReminder | undefined {
 function setClaimReminder(claimId: EntityId, remindAt: string): WriteResult {
   const claim = claims.find((candidate) => candidate.id === claimId);
   if (!claim) {
-    return { ok: false, message: "Forderung nicht gefunden." };
+    return { ok: false, message: msg("service.claims.claimNotFound") };
   }
   if (activeOwnReminder(claimId)) {
-    return { ok: false, message: "Es gibt schon eine aktive Erinnerung." };
+    return { ok: false, message: msg("service.claims.reminderExists") };
   }
   reminders = [
     ...reminders,
@@ -225,31 +226,31 @@ function setClaimReminder(claimId: EntityId, remindAt: string): WriteResult {
   ];
   appendEvent(claimId, "reminder_set");
   notifyExternalDataChanged();
-  return { ok: true, message: "Erinnerung gesetzt (nur für dich)." };
+  return { ok: true, message: msg("service.claims.reminderSet") };
 }
 
 function snoozeClaimReminder(claimId: EntityId, remindAt: string): WriteResult {
   const reminder = activeOwnReminder(claimId);
   if (!reminder) {
-    return { ok: false, message: "Keine aktive Erinnerung." };
+    return { ok: false, message: msg("service.claims.noActiveReminder") };
   }
   let snoozed: ClaimReminder;
   try {
     snoozed = snoozeReminder(reminder, remindAt);
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    return { ok: false, message: msg("service.common.raw", { detail: error instanceof Error ? error.message : String(error) }) };
   }
   reminders = reminders.map((candidate) =>
     candidate.id === reminder.id ? snoozed : candidate,
   );
   notifyExternalDataChanged();
-  return { ok: true, message: "Erinnerung verschoben." };
+  return { ok: true, message: msg("service.claims.reminderSnoozed") };
 }
 
 function disableClaimReminder(claimId: EntityId): WriteResult {
   const reminder = activeOwnReminder(claimId);
   if (!reminder) {
-    return { ok: false, message: "Keine aktive Erinnerung." };
+    return { ok: false, message: msg("service.claims.noActiveReminder") };
   }
   const disabled = disableReminder(reminder, nowIso());
   reminders = reminders.map((candidate) =>
@@ -257,7 +258,7 @@ function disableClaimReminder(claimId: EntityId): WriteResult {
   );
   appendEvent(claimId, "reminder_cleared");
   notifyExternalDataChanged();
-  return { ok: true, message: "Erinnerung deaktiviert." };
+  return { ok: true, message: msg("service.claims.reminderDisabled") };
 }
 
 function groupName(groupId: EntityId | undefined): string | undefined {

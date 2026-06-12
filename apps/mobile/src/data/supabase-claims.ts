@@ -23,6 +23,7 @@ import {
 } from "@payment-divider/core";
 
 import type { Database } from "../services/database.types";
+import { msg } from "../i18n/service-message";
 import { getSupabaseClient, type AppSupabaseClient } from "../services/supabase-client";
 import {
   createClaim,
@@ -403,10 +404,10 @@ async function withSession(
 ): Promise<WriteResult> {
   const client = getSupabaseClient();
   if (!client) {
-    return { ok: false, message: "Kein Supabase-Client konfiguriert (siehe .env.example)." };
+    return { ok: false, message: msg("service.common.noClient") };
   }
   if (!currentUserId) {
-    return { ok: false, message: "Keine lokale Dev-Session aktiv (Profil-Tab)." };
+    return { ok: false, message: msg("service.common.noSession") };
   }
   const result = await run(client, currentUserId);
   if (result.ok) {
@@ -454,13 +455,13 @@ export const supabaseClaimsRepository: ClaimsRepository = {
           input.newCounterparty,
         );
         if (!created.counterpartyId) {
-          return { ok: false, message: created.error ?? "Person anlegen fehlgeschlagen." };
+          return { ok: false, message: created.error ?? msg("service.claims.personCreateFailed") };
         }
         counterpartyId = created.counterpartyId;
         counterpartyKind = input.newCounterparty.kind;
       }
       if (!counterpartyId || !counterpartyKind) {
-        return { ok: false, message: "Person nicht gefunden." };
+        return { ok: false, message: msg("service.claims.personNotFound") };
       }
       return createClaim(client, userId, {
         direction: input.direction,
@@ -478,7 +479,7 @@ export const supabaseClaimsRepository: ClaimsRepository = {
       const data = remote;
       const claim = findClaim(claimId);
       if (!claim || !data || amount <= 0) {
-        return { ok: false, message: "Teilzahlung nicht möglich." };
+        return { ok: false, message: msg("service.claims.paymentNotPossible") };
       }
       return recordClaimPayment(client, userId, {
         claim,
@@ -491,7 +492,7 @@ export const supabaseClaimsRepository: ClaimsRepository = {
     withSession(async (client, userId) => {
       const claim = findClaim(claimId);
       if (!claim) {
-        return { ok: false, message: "Forderung nicht gefunden." };
+        return { ok: false, message: msg("service.claims.claimNotFound") };
       }
       return transitionClaim(client, userId, claim, "debtor_acknowledged", "claim_acknowledged");
     }),
@@ -499,7 +500,7 @@ export const supabaseClaimsRepository: ClaimsRepository = {
     withSession(async (client, userId) => {
       const claim = findClaim(claimId);
       if (!claim) {
-        return { ok: false, message: "Forderung nicht gefunden." };
+        return { ok: false, message: msg("service.claims.claimNotFound") };
       }
       return transitionClaim(client, userId, claim, "disputed", "claim_disputed");
     }),
@@ -507,17 +508,17 @@ export const supabaseClaimsRepository: ClaimsRepository = {
     withSession(async (client, userId) => {
       const claim = findClaim(claimId);
       if (!claim) {
-        return { ok: false, message: "Forderung nicht gefunden." };
+        return { ok: false, message: msg("service.claims.claimNotFound") };
       }
       return transitionClaim(client, userId, claim, "archived", "claim_archived");
     }),
   setClaimReminder: (claimId, remindAt) =>
     withSession(async (client, userId) => {
       if (!remote) {
-        return { ok: false, message: "Forderungen noch nicht geladen." };
+        return { ok: false, message: msg("service.claims.notLoaded") };
       }
       if (activeOwnReminder(remote, claimId)) {
-        return { ok: false, message: "Es gibt schon eine aktive Erinnerung." };
+        return { ok: false, message: msg("service.claims.reminderExists") };
       }
       return insertClaimReminder(client, userId, claimId, remindAt);
     }),
@@ -525,7 +526,7 @@ export const supabaseClaimsRepository: ClaimsRepository = {
     withSession(async (client) => {
       const reminder = remote ? activeOwnReminder(remote, claimId) : undefined;
       if (!reminder) {
-        return { ok: false, message: "Keine aktive Erinnerung." };
+        return { ok: false, message: msg("service.claims.noActiveReminder") };
       }
       return snoozeClaimReminderRow(client, reminder, remindAt);
     }),
@@ -533,7 +534,7 @@ export const supabaseClaimsRepository: ClaimsRepository = {
     withSession(async (client, userId) => {
       const reminder = remote ? activeOwnReminder(remote, claimId) : undefined;
       if (!reminder) {
-        return { ok: false, message: "Keine aktive Erinnerung." };
+        return { ok: false, message: msg("service.claims.noActiveReminder") };
       }
       return disableClaimReminderRow(client, userId, reminder, new Date().toISOString());
     }),

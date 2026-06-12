@@ -11,6 +11,7 @@ import {
 import type { AppSupabaseClient } from "./supabase-client";
 
 import type { NewCounterpartyInput } from "../data/claims-repository";
+import { msg, type ServiceMessage } from "../i18n/service-message";
 import type { WriteResult } from "../data/repositories";
 
 // Claims writes against the locally running Supabase stack. Claims stay
@@ -26,7 +27,7 @@ export async function getOrCreateCounterpartyId(
   client: AppSupabaseClient,
   userId: string,
   input: NewCounterpartyInput,
-): Promise<{ counterpartyId?: EntityId; error?: string }> {
+): Promise<{ counterpartyId?: EntityId; error?: ServiceMessage }> {
   const normalized = normalizeCounterpartyName(input.displayName);
   const { data: existing, error: selectError } = await client
     .from("counterparties")
@@ -37,7 +38,7 @@ export async function getOrCreateCounterpartyId(
     .limit(1)
     .maybeSingle();
   if (selectError) {
-    return { error: `Personensuche fehlgeschlagen: ${selectError.message}` };
+    return { error: msg("service.claims.personSearchFailed", { detail: selectError.message }) };
   }
   if (existing) {
     return { counterpartyId: existing.id };
@@ -54,7 +55,7 @@ export async function getOrCreateCounterpartyId(
     .select("id")
     .single();
   if (insertError || !created) {
-    return { error: `Person anlegen fehlgeschlagen: ${insertError?.message}` };
+    return { error: msg("service.claims.personCreateFailedDetail", { detail: String(insertError?.message) }) };
   }
   return { counterpartyId: created.id };
 }
@@ -111,15 +112,15 @@ export async function createClaim(
     .select("id")
     .single();
   if (error || !claim) {
-    return { ok: false, message: `Forderung fehlgeschlagen: ${error?.message}` };
+    return { ok: false, message: msg("service.claims.claimFailed", { detail: String(error?.message) }) };
   }
 
   const eventError = await appendClaimEvent(client, userId, claim.id, "claim_created");
   return {
     ok: true,
     message: eventError
-      ? `Forderung lokal in Supabase gespeichert (Timeline übersprungen: ${eventError}).`
-      : "Forderung lokal in Supabase gespeichert.",
+      ? msg("service.claims.claimSavedTimelineSkipped", { detail: eventError })
+      : msg("service.claims.claimSavedSupabase"),
   };
 }
 
@@ -148,7 +149,7 @@ export async function recordClaimPayment(
     confirmation_status: needsConfirmation ? "pending_confirmation" : "confirmed",
   });
   if (error) {
-    return { ok: false, message: `Teilzahlung fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.claims.paymentFailed", { detail: error.message }) };
   }
 
   const eventError = await appendClaimEvent(
@@ -160,8 +161,8 @@ export async function recordClaimPayment(
   return {
     ok: true,
     message: eventError
-      ? `Teilzahlung gespeichert (Timeline übersprungen: ${eventError}).`
-      : "Teilzahlung lokal in Supabase gespeichert.",
+      ? msg("service.claims.paymentSavedTimelineSkipped", { detail: eventError })
+      : msg("service.claims.paymentSavedSupabase"),
   };
 }
 
@@ -181,14 +182,14 @@ export async function insertClaimReminder(
     remind_at: remindAt,
   });
   if (error) {
-    return { ok: false, message: `Erinnerung fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.claims.reminderFailed", { detail: error.message }) };
   }
   const eventError = await appendClaimEvent(client, userId, claimId, "reminder_set");
   return {
     ok: true,
     message: eventError
-      ? `Erinnerung gesetzt (Timeline übersprungen: ${eventError}).`
-      : "Erinnerung gesetzt (nur für dich).",
+      ? msg("service.claims.reminderSetTimelineSkipped", { detail: eventError })
+      : msg("service.claims.reminderSet"),
   };
 }
 
@@ -204,16 +205,16 @@ export async function snoozeClaimReminderRow(
   try {
     snoozed = snoozeReminder(reminder, remindAt);
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    return { ok: false, message: msg("service.common.raw", { detail: error instanceof Error ? error.message : String(error) }) };
   }
   const { error } = await client
     .from("claim_reminders")
     .update({ remind_at: snoozed.remindAt, disabled_at: null })
     .eq("id", reminder.id);
   if (error) {
-    return { ok: false, message: `Verschieben fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.claims.snoozeFailed", { detail: error.message }) };
   }
-  return { ok: true, message: "Erinnerung verschoben." };
+  return { ok: true, message: msg("service.claims.reminderSnoozed") };
 }
 
 export async function disableClaimReminderRow(
@@ -227,7 +228,7 @@ export async function disableClaimReminderRow(
     .update({ disabled_at: disabledAt })
     .eq("id", reminder.id);
   if (error) {
-    return { ok: false, message: `Deaktivieren fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.claims.disableFailed", { detail: error.message }) };
   }
   const eventError = await appendClaimEvent(
     client,
@@ -238,8 +239,8 @@ export async function disableClaimReminderRow(
   return {
     ok: true,
     message: eventError
-      ? `Erinnerung deaktiviert (Timeline übersprungen: ${eventError}).`
-      : "Erinnerung deaktiviert.",
+      ? msg("service.claims.reminderDisabledTimelineSkipped", { detail: eventError })
+      : msg("service.claims.reminderDisabled"),
   };
 }
 
@@ -256,7 +257,7 @@ export async function transitionClaim(
   if (!canTransitionClaimStatus(claim.status, to)) {
     return {
       ok: false,
-      message: `Statuswechsel ${claim.status} → ${to} ist nicht erlaubt.`,
+      message: msg("service.claims.transitionPairNotAllowed", { from: claim.status, to }),
     };
   }
   const { data, error } = await client
@@ -265,17 +266,17 @@ export async function transitionClaim(
     .eq("id", claim.id)
     .select("id");
   if (error) {
-    return { ok: false, message: `Statuswechsel fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.claims.transitionFailed", { detail: error.message }) };
   }
   if (!data || data.length === 0) {
-    return { ok: false, message: "Statuswechsel nicht erlaubt (RLS)." };
+    return { ok: false, message: msg("service.claims.transitionRejectedRls") };
   }
 
   const eventError = await appendClaimEvent(client, userId, claim.id, eventType);
   return {
     ok: true,
     message: eventError
-      ? `Status aktualisiert (Timeline übersprungen: ${eventError}).`
-      : "Status lokal in Supabase aktualisiert.",
+      ? msg("service.claims.statusUpdatedTimelineSkipped", { detail: eventError })
+      : msg("service.claims.statusUpdatedSupabase"),
   };
 }

@@ -6,6 +6,7 @@ import type {
   CreateGroupInput,
   WriteResult,
 } from "../data/repositories";
+import { msg } from "../i18n/service-message";
 
 // Ledger-only writes against the locally running Supabase stack. Every insert
 // goes through the conservative RLS write policies; nothing here touches
@@ -27,7 +28,7 @@ export async function createGroupWithDefaults(
     .select("id")
     .single();
   if (groupError || !group) {
-    return { ok: false, message: `Gruppe anlegen fehlgeschlagen: ${groupError?.message}` };
+    return { ok: false, message: msg("service.ledger.groupCreateFailed", { detail: String(groupError?.message) }) };
   }
 
   const { error: memberError } = await client.from("group_members").insert({
@@ -38,7 +39,7 @@ export async function createGroupWithDefaults(
   if (memberError) {
     return {
       ok: false,
-      message: `Creator-Membership fehlgeschlagen: ${memberError.message}`,
+      message: msg("service.ledger.membershipFailed", { detail: memberError.message }),
     };
   }
 
@@ -51,11 +52,11 @@ export async function createGroupWithDefaults(
   if (contextError) {
     return {
       ok: false,
-      message: `Default-Aktivität fehlgeschlagen: ${contextError.message}`,
+      message: msg("service.ledger.defaultContextFailed", { detail: contextError.message }),
     };
   }
 
-  return { ok: true, message: `Gruppe "${input.name}" lokal angelegt.` };
+  return { ok: true, message: msg("service.ledger.groupCreated", { name: input.name }) };
 }
 
 export async function createExpenseWithShares(
@@ -78,7 +79,7 @@ export async function createExpenseWithShares(
     .select("id")
     .single();
   if (expenseError || !expense) {
-    return { ok: false, message: `Ausgabe fehlgeschlagen: ${expenseError?.message}` };
+    return { ok: false, message: msg("service.ledger.expenseFailed", { detail: String(expenseError?.message) }) };
   }
 
   const shares = splitExpenseEqually({
@@ -96,7 +97,7 @@ export async function createExpenseWithShares(
     })),
   );
   if (sharesError) {
-    return { ok: false, message: `Shares fehlgeschlagen: ${sharesError.message}` };
+    return { ok: false, message: msg("service.ledger.sharesFailed", { detail: sharesError.message }) };
   }
 
   // Timeline append is best effort: if the policy rejects it, the expense
@@ -113,7 +114,7 @@ export async function createExpenseWithShares(
   return {
     ok: true,
     message: timelineError
-      ? `Ausgabe lokal gespeichert (Timeline übersprungen: ${timelineError.message}).`
-      : "Ausgabe lokal in Supabase gespeichert.",
+      ? msg("service.ledger.expenseSavedTimelineSkipped", { detail: timelineError.message })
+      : msg("service.ledger.expenseSaved"),
   };
 }

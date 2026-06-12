@@ -21,6 +21,7 @@ import {
   getDraftExpenses,
 } from "./local-ledger";
 import { PROFILE_SCREEN_MOCK } from "../mock-data/profile";
+import { msg } from "../i18n/service-message";
 import {
   MOCK_CONTEXT_IDS,
   MOCK_CONTEXT_MEMBERS,
@@ -146,7 +147,7 @@ export const mockRepositories: AppRepositories = {
   getSettlementItems: buildSettlementItems,
   createGroup: async () => ({
     ok: false,
-    message: "Gruppen anlegen gibt es nur im supabase-local Modus.",
+    message: msg("service.ledger.groupOnlySupabase"),
   }),
   createExpense: async (input) => {
     const draftId = `draft-${Date.now()}-${getDraftExpenses().length}`;
@@ -181,7 +182,7 @@ export const mockRepositories: AppRepositories = {
       })),
     });
 
-    return { ok: true, message: "Demo-Draft lokal gespeichert · nicht synchronisiert." };
+    return { ok: true, message: msg("service.ledger.draftSaved") };
   },
   getProfile: () => PROFILE_SCREEN_MOCK,
 };

@@ -49,11 +49,17 @@ function fakeClient(state: FakeState): ProfileBootstrapClient {
 
 describe("validateProfileInput", () => {
   it("rejects blank display names", () => {
-    assert.notEqual(validateProfileInput({ displayName: "   " }), undefined);
+    assert.equal(
+      validateProfileInput({ displayName: "   " })?.key,
+      "service.profile.displayNameEmpty",
+    );
   });
 
   it("rejects blank usernames but allows omitted ones", () => {
-    assert.notEqual(validateProfileInput({ displayName: "A", username: "  " }), undefined);
+    assert.equal(
+      validateProfileInput({ displayName: "A", username: "  " })?.key,
+      "service.profile.usernameEmpty",
+    );
     assert.equal(validateProfileInput({ displayName: "A" }), undefined);
     assert.equal(validateProfileInput({ displayName: "A", username: "a" }), undefined);
   });
@@ -94,14 +100,15 @@ describe("ensureOwnProfile", () => {
     assert.equal(state.inserted.length, 0);
   });
 
-  it("surfaces select and insert errors", async () => {
+  it("surfaces select and insert errors as keys with detail", async () => {
     const selectFail = await ensureOwnProfile(
       fakeClient({ existingIds: [], inserted: [], selectError: "boom" }),
       "user-1",
       { displayName: "Ada" },
     );
     assert.equal(selectFail.ok, false);
-    assert.match(selectFail.message ?? "", /boom/);
+    assert.equal(selectFail.message?.key, "service.profile.checkFailed");
+    assert.equal(selectFail.message?.params?.detail, "boom");
 
     const insertFail = await ensureOwnProfile(
       fakeClient({ existingIds: [], inserted: [], insertError: "denied" }),
@@ -109,6 +116,7 @@ describe("ensureOwnProfile", () => {
       { displayName: "Ada" },
     );
     assert.equal(insertFail.ok, false);
-    assert.match(insertFail.message ?? "", /denied/);
+    assert.equal(insertFail.message?.key, "service.profile.createFailed");
+    assert.equal(insertFail.message?.params?.detail, "denied");
   });
 });
