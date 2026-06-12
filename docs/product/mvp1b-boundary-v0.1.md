@@ -40,9 +40,11 @@ never moves money and never pressures anyone.
 - Duplicate merge as explicit user-confirmed flow (#88 prepares only).
 - `disputed → linked_open` clarification action in mobile UI (#91 spec only).
 - Free sync and premium encrypted backup model: decided in
-  `free-sync-premium-backup-v0.1.md` (#94) — core sharing/sync stays free,
-  premium phase 1 is comfort only (encrypted backup, multi-device, restore);
-  private local data stays local unless shared or synced.
+  `free-sync-premium-backup-v0.1.md` (#94, amended by #126) — core
+  sharing/sync stays free, premium phase 1 is comfort only (encrypted
+  backup, multi-device, restore); private unshared data is stored as
+  owner-private rows on EU servers (visible only to the owner), sharing
+  stays explicit per record.
 
 ## Expressly not in MVP 1B
 
@@ -83,6 +85,8 @@ or anything implying pressure, escalation or legal assessment.
 ## Privacy rules (carried from the specs)
 
 - Free-text/external persons stay private to their owner — including names.
+  Storage-wise these are owner-private rows on EU servers (RLS owner-only,
+  decision #126), never claimed to be device-only for the alpha.
 - Linking a counterparty to an app user never auto-exposes old private
   claims; sharing is explicit per claim.
 - Reminders are per-user; nothing fires for or is sent to the other side.
@@ -101,3 +105,4 @@ or anything implying pressure, escalation or legal assessment.
 | Boundary (this doc) | mvp1b-boundary-v0.1 | #93 |
 | Sync/backup model | free-sync-premium-backup-v0.1 | #94 |
 | Shared alpha readiness | shared-alpha-backend-readiness v0.1 (architecture) | #108 |
+| Owner-private storage decision | free-sync-premium-backup-v0.1 (amendment) | #126 |

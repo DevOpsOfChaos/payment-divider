@@ -53,30 +53,35 @@ Invitations and cost-plan tables do not exist yet (invite flow is a later
 issue; cost plans land with #112) — they are listed in #94 as shared/synced
 and must be classified in this file when their schema arrives.
 
-### 2.1 Finding: local-private data is currently server-stored
+### 2.1 Decision (#126): owner-private EU rows for the alpha
 
-Issue #94 says local-private data lives "on device only; the server never sees it
-unless the user shares or enables backup". The current implementation stores
-the entire local-private class (external/invited counterparties incl. names,
-unshared claims, reminders) **in Supabase**, protected by owner-only RLS.
-Harmless against a local stack on the developer's own machine — **not
-compatible with the #94 wording once the backend is shared.**
+Decided 2026-06-12 (issue #126). Original finding: issue #94 said
+local-private data lives "on device only; the server never sees it unless
+the user shares or enables backup", while the implementation stores this
+class (external/invited counterparties incl. names, unshared claims,
+reminders) in Supabase under owner-only RLS.
 
-Before shared alpha, one of two resolutions must be decided explicitly
-(tracked as issue #126):
+**Decision: variant (b) — owner-private EU rows are allowed for the shared
+alpha**, under these binding conditions:
 
-- **(a) Device-local persistence + selective sync**: unshared
-  counterparties/claims/reminders persist on the device; only shared claims
-  (and the minimal counterparty link data they need) sync. Honors #94
-  verbatim; significant work (local store, sync boundary, conflict rules).
-- **(b) Revise the promise for alpha**: owner-private rows live on EU
-  servers, RLS-scoped to the owner, sharing stays explicit per claim. Honest
-  wording would become "private data is visible only to you; shared data is
-  visible to participants; everything lives on EU servers". Requires
-  updating #94/#93 wording and all UI copy that implies device-only storage.
+- Project region is EU, or this stays an open blocker until confirmed
+  (section 1 — unchanged).
+- RLS stays strictly owner-only for this class (counterparties, aliases,
+  unshared claims and their payments/events, reminders) — smoke-tested.
+- Sharing stays an explicit per-claim action (`shared_with_counterparty`);
+  linking a person never auto-exposes old records.
+- UI and docs never claim private unshared data is device-only / "the
+  server never sees it"; binding wording is "private data is visible only
+  to you; shared data is visible to its participants; everything lives on
+  EU servers" (`free-sync-premium-backup-v0.1.md`, amended).
+- A true device-only/local-first mode stays a possible later option
+  (#129), not an alpha promise. No local-first rebuild, no local sync or
+  conflict system now.
 
-Until decided, no shared-alpha invite: shipping (b) silently while #94
-promises (a) would break the privacy framing.
+The ⚠ rows in the table above are therefore resolved for the alpha: the
+owner-private class lives server-side by decision, and the class formerly
+called "local private" is renamed to **owner-private** in #94; only
+drafts/demo data remain genuinely device-only.
 
 ## 3. RLS cross-check (who reads/writes, gaps)
 
@@ -121,7 +126,7 @@ deployment.
 
 | Gap | What is needed | Class |
 | --- | --- | --- |
-| Local-private storage decision (2.1) | decide (a) device-local + selective sync vs (b) revised promise; update #93/#94 + UI copy accordingly (#126) | **Blocker** |
+| Local-private storage decision (2.1) | **decided** (#126): owner-private EU rows for alpha; #93/#94 updated; device-only stays later option (#129) | Done |
 | Supabase project region | create alpha project in EU region, document here | **Blocker** |
 | Real auth | replace dev session: real sign-up/sign-in (e-mail+password or magic link), remove fixed credentials path from shared builds | **Blocker** |
 | Secrets handling | env separation: local `.env` stays gitignored; shared project URL/publishable key distribution for testers; service keys never in repo/app | **Blocker** |
@@ -135,14 +140,14 @@ deployment.
 
 ## 5. Blockers vs. non-blockers (summary)
 
-**Blockers for shared alpha** (in order):
+**Blockers for shared alpha** (in order; the storage decision from 2.1 is
+resolved via #126 — owner-private EU rows):
 
-1. Local-private storage decision (2.1, #126) — product decision first.
-2. EU region confirmed at project creation.
-3. Real auth replacing the dev session.
-4. Secrets/env separation for shared config.
-5. Migration deploy path.
-6. RLS smoke (or equivalent) green against the shared project.
+1. EU region confirmed at project creation.
+2. Real auth replacing the dev session.
+3. Secrets/env separation for shared config.
+4. Migration deploy path.
+5. RLS smoke (or equivalent) green against the shared project.
 
 **Can follow during alpha**: seed/testdata doc, additional smoke cases,
 write paths for participation/availability/inbox resolve, friend_connections

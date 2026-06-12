@@ -32,6 +32,10 @@ MVP 1A view in `mvp1a-readiness.md` for data-mode questions.
 - Claim reminders (#116): own active reminder per claim shown in the claims
   UI, set/snooze/disable in both data modes via core helpers. Strictly
   personal metadata (owner-only RLS); nothing is sent, no push.
+- Storage model for unshared counterparties/claims/reminders: owner-private
+  rows (RLS owner-only), per decision #126 also valid for the shared alpha
+  on EU servers — never described as device-only. Details:
+  `docs/architecture/shared-alpha-backend-readiness.md` §2.1.
 - Verified: migrations replay cleanly (`db reset`), `db lint` clean, RLS
   behavior smoke tests 33/33 PASS (`pnpm db:rls-test`).
 
