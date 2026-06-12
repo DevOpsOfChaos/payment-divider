@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { getAppEnv, getDevSessionBlockedHint, isDevSessionAllowed } from "./app-env";
+import { getAppEnv, isDevSessionAllowed } from "./app-env";
 
 const ORIGINAL = process.env.EXPO_PUBLIC_APP_ENV;
 
@@ -64,12 +64,5 @@ describe("isDevSessionAllowed", () => {
       setAppEnv(value);
       assert.equal(isDevSessionAllowed(), false, `value: ${value}`);
     }
-  });
-});
-
-describe("getDevSessionBlockedHint", () => {
-  it("names the active environment", () => {
-    setAppEnv("shared-alpha");
-    assert.match(getDevSessionBlockedHint(), /shared-alpha/);
   });
 });

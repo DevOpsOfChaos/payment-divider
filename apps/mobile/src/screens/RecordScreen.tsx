@@ -13,6 +13,7 @@ import {
   type RecordParticipantOption,
   type RecordSetupData,
 } from "../data";
+import { formatServiceMessage, type ServiceMessage } from "../i18n/service-message";
 
 // Parses German money input like "42,80" or "1.250,00" into integer cents.
 function parseGermanAmountToMinor(rawText: string): number | undefined {
@@ -72,7 +73,7 @@ export function RecordScreen() {
   );
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | undefined>(undefined);
+  const [saveMessage, setSaveMessage] = useState<ServiceMessage | undefined>(undefined);
   const drafts = getDraftExpenses();
 
   // When the underlying context switches (e.g. supabase-local data arrives),
@@ -271,7 +272,9 @@ export function RecordScreen() {
         </Text>
       </Pressable>
 
-      {saveMessage ? <Text style={styles.compactHint}>{saveMessage}</Text> : null}
+      {saveMessage ? (
+        <Text style={styles.compactHint}>{formatServiceMessage(t, saveMessage)}</Text>
+      ) : null}
 
       {drafts.length > 0 ? (
         <View style={styles.section}>

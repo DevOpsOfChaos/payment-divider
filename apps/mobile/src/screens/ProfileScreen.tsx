@@ -11,6 +11,7 @@ import {
   useLedgerVersion,
 } from "../data";
 import { isDevSessionAllowed } from "../config/app-env";
+import { formatServiceMessage, type ServiceMessage } from "../i18n/service-message";
 import { signInWithPassword, signOut, signUpWithPassword } from "../services/auth";
 import { endDevSession, startDevSession } from "../services/dev-session";
 import type {
@@ -28,10 +29,11 @@ function AuthCard() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | undefined>(undefined);
+  const [message, setMessage] = useState<ServiceMessage | undefined>(undefined);
   const sessionUserId = getSupabaseSessionUserId();
+  const messageText = message ? formatServiceMessage(t, message) : undefined;
 
-  async function run(action: () => Promise<{ message: string }>) {
+  async function run(action: () => Promise<{ message: ServiceMessage }>) {
     setBusy(true);
     try {
       const result = await action();
@@ -54,7 +56,7 @@ function AuthCard() {
         >
           <Text style={styles.devButtonText}>{t("auth.account.signOut")}</Text>
         </Pressable>
-        {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+        {messageText ? <Text style={styles.subCardDetail}>{messageText}</Text> : null}
       </View>
     );
   }
@@ -132,7 +134,7 @@ function AuthCard() {
           {isSignUp ? t("auth.switch.toSignIn") : t("auth.switch.toSignUp")}
         </Text>
       </Pressable>
-      {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+      {messageText ? <Text style={styles.subCardDetail}>{messageText}</Text> : null}
     </View>
   );
 }
@@ -140,10 +142,11 @@ function AuthCard() {
 function DevSessionCard() {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | undefined>(undefined);
+  const [message, setMessage] = useState<ServiceMessage | undefined>(undefined);
   const sessionUserId = getSupabaseSessionUserId();
+  const messageText = message ? formatServiceMessage(t, message) : undefined;
 
-  async function run(action: () => Promise<{ message: string }>) {
+  async function run(action: () => Promise<{ message: ServiceMessage }>) {
     setBusy(true);
     try {
       const result = await action();
@@ -187,7 +190,7 @@ function DevSessionCard() {
           <Text style={styles.devButtonText}>{t("devSession.createDemoGroup")}</Text>
         </Pressable>
       ) : null}
-      {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+      {messageText ? <Text style={styles.subCardDetail}>{messageText}</Text> : null}
     </View>
   );
 }

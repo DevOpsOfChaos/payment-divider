@@ -23,6 +23,7 @@ import {
 import { mockRepositories } from "./mock-repositories";
 import { notifyExternalDataChanged } from "./local-ledger";
 import type { Database } from "../services/database.types";
+import { msg } from "../i18n/service-message";
 import { getSupabaseClient, type AppSupabaseClient } from "../services/supabase-client";
 import {
   createExpenseWithShares,
@@ -623,10 +624,10 @@ async function withSession(
 ): Promise<WriteResult> {
   const client = getSupabaseClient();
   if (!client) {
-    return { ok: false, message: "Kein Supabase-Client konfiguriert (siehe .env.example)." };
+    return { ok: false, message: msg("service.common.noClient") };
   }
   if (!currentUserId) {
-    return { ok: false, message: "Keine lokale Dev-Session aktiv (Profil-Tab)." };
+    return { ok: false, message: msg("service.common.noSession") };
   }
   return run(client, currentUserId);
 }

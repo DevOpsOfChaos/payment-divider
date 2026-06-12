@@ -1,3 +1,4 @@
+import { msg, type ServiceMessage } from "../i18n/service-message";
 import type { AppSupabaseClient } from "./supabase-client";
 
 // Profile bootstrap after sign-in (#135): make sure a profiles row exists for
@@ -5,8 +6,9 @@ import type { AppSupabaseClient } from "./supabase-client";
 // optional username). Never touches contact data; no phone number anywhere.
 //
 // Kept free of runtime react-native imports (the supabase-client import above
-// is type-only and erased) so it can run under node:test with a faked client
-// and in the auth-flow smoke script against the local stack.
+// is type-only and erased; service-message is pure) so it can run under
+// node:test with a faked client and in the auth-flow smoke script against the
+// local stack. Messages are stable keys (#142); the UI translates.
 
 export interface ProfileInput {
   displayName: string;
@@ -72,15 +74,15 @@ export function asBootstrapClient(client: AppSupabaseClient): ProfileBootstrapCl
 export interface ProfileBootstrapResult {
   ok: boolean;
   created: boolean;
-  message?: string;
+  message?: ServiceMessage;
 }
 
-export function validateProfileInput(input: ProfileInput): string | undefined {
+export function validateProfileInput(input: ProfileInput): ServiceMessage | undefined {
   if (input.displayName.trim().length === 0) {
-    return "Anzeigename darf nicht leer sein.";
+    return msg("service.profile.displayNameEmpty");
   }
   if (input.username !== undefined && input.username.trim().length === 0) {
-    return "Benutzername darf nicht leer sein (oder Feld frei lassen).";
+    return msg("service.profile.usernameEmpty");
   }
   return undefined;
 }
@@ -100,7 +102,11 @@ export async function ensureOwnProfile(
 
   const existing = await client.from("profiles").select("id").eq("id", userId).maybeSingle();
   if (existing.error) {
-    return { ok: false, created: false, message: `Profil-Check fehlgeschlagen: ${existing.error.message}` };
+    return {
+      ok: false,
+      created: false,
+      message: msg("service.profile.checkFailed", { detail: existing.error.message }),
+    };
   }
   if (existing.data) {
     return { ok: true, created: false };
@@ -112,7 +118,11 @@ export async function ensureOwnProfile(
     username: input.username?.trim() ?? null,
   });
   if (error) {
-    return { ok: false, created: false, message: `Profil anlegen fehlgeschlagen: ${error.message}` };
+    return {
+      ok: false,
+      created: false,
+      message: msg("service.profile.createFailed", { detail: error.message }),
+    };
   }
   return { ok: true, created: true };
 }

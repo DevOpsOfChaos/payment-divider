@@ -11,6 +11,7 @@ import type {
 } from "@payment-divider/core";
 
 import { claimsData, formatMoney, useLedgerVersion, type ClaimListItem } from "../data";
+import { formatServiceMessage } from "../i18n/service-message";
 
 // Parses German money input like "12,50" into integer cents.
 function parseAmount(rawText: string): number | undefined {
@@ -386,7 +387,7 @@ export function ClaimsScreen() {
       groupId,
     });
     if (!result.ok) {
-      setFormError(result.message);
+      setFormError(formatServiceMessage(t, result.message));
       return;
     }
     setName("");

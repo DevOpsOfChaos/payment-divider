@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "./supabase-client";
 import { asBootstrapClient, ensureOwnProfile, type ProfileInput } from "./profile-bootstrap";
+import { msg, type ServiceMessage } from "../i18n/service-message";
 import { reloadSupabaseClaims } from "../data/supabase-claims";
 import { reloadSupabaseData } from "../data/supabase-repositories";
 
@@ -8,15 +9,12 @@ import { reloadSupabaseData } from "../data/supabase-repositories";
 // client (AsyncStorage). Developed against the local stack; works unchanged
 // against a shared project once one exists. No OAuth, no magic links, no
 // redirects. This is alpha tooling, not a production-ready account system.
+//
+// Results carry stable message keys (#142); the UI translates them.
 
 export interface AuthResult {
   ok: boolean;
-  message: string;
-}
-
-function describeAuthError(message: string): string {
-  // Neutral wording; the raw server message is appended for debugging.
-  return `Anmeldung nicht möglich: ${message}`;
+  message: ServiceMessage;
 }
 
 function reloadAll(): void {
@@ -31,15 +29,15 @@ export async function signUpWithPassword(
 ): Promise<AuthResult> {
   const client = getSupabaseClient();
   if (!client) {
-    return { ok: false, message: "Kein Supabase-Client konfiguriert (siehe .env.example)." };
+    return { ok: false, message: msg("service.common.noClient") };
   }
   if (!email.trim() || !password) {
-    return { ok: false, message: "E-Mail und Passwort werden benötigt." };
+    return { ok: false, message: msg("service.auth.credentialsRequired") };
   }
 
   const signUp = await client.auth.signUp({ email: email.trim(), password });
   if (signUp.error) {
-    return { ok: false, message: describeAuthError(signUp.error.message) };
+    return { ok: false, message: msg("service.auth.failed", { detail: signUp.error.message }) };
   }
 
   // Local stack default: e-mail confirmation disabled, signUp returns a
@@ -47,18 +45,18 @@ export async function signUpWithPassword(
   // the profile is then bootstrapped on the first successful sign-in.
   const userId = signUp.data.session?.user.id;
   if (!userId) {
-    return {
-      ok: true,
-      message: "Registriert. Bitte E-Mail bestätigen und danach anmelden.",
-    };
+    return { ok: true, message: msg("service.auth.signUpConfirmEmail") };
   }
 
   const bootstrap = await ensureOwnProfile(asBootstrapClient(client), userId, profile);
   reloadAll();
-  if (!bootstrap.ok) {
-    return { ok: true, message: `Angemeldet, aber: ${bootstrap.message}` };
+  if (!bootstrap.ok && bootstrap.message) {
+    return {
+      ok: true,
+      message: msg("service.auth.signedInWithIssue", { detail: bootstrap.message }),
+    };
   }
-  return { ok: true, message: "Konto erstellt und angemeldet." };
+  return { ok: true, message: msg("service.auth.signedUp") };
 }
 
 export async function signInWithPassword(
@@ -68,15 +66,15 @@ export async function signInWithPassword(
 ): Promise<AuthResult> {
   const client = getSupabaseClient();
   if (!client) {
-    return { ok: false, message: "Kein Supabase-Client konfiguriert (siehe .env.example)." };
+    return { ok: false, message: msg("service.common.noClient") };
   }
   if (!email.trim() || !password) {
-    return { ok: false, message: "E-Mail und Passwort werden benötigt." };
+    return { ok: false, message: msg("service.auth.credentialsRequired") };
   }
 
   const signIn = await client.auth.signInWithPassword({ email: email.trim(), password });
   if (signIn.error) {
-    return { ok: false, message: describeAuthError(signIn.error.message) };
+    return { ok: false, message: msg("service.auth.failed", { detail: signIn.error.message }) };
   }
 
   // Bootstrap only if a profile input was provided (e.g. sign-in directly
@@ -85,25 +83,28 @@ export async function signInWithPassword(
   const userId = signIn.data.user?.id;
   if (userId && profile) {
     const bootstrap = await ensureOwnProfile(asBootstrapClient(client), userId, profile);
-    if (!bootstrap.ok) {
+    if (!bootstrap.ok && bootstrap.message) {
       reloadAll();
-      return { ok: true, message: `Angemeldet, aber: ${bootstrap.message}` };
+      return {
+        ok: true,
+        message: msg("service.auth.signedInWithIssue", { detail: bootstrap.message }),
+      };
     }
   }
 
   reloadAll();
-  return { ok: true, message: "Angemeldet." };
+  return { ok: true, message: msg("service.auth.signedIn") };
 }
 
 export async function signOut(): Promise<AuthResult> {
   const client = getSupabaseClient();
   if (!client) {
-    return { ok: false, message: "Kein Supabase-Client konfiguriert." };
+    return { ok: false, message: msg("service.common.noClientShort") };
   }
   const { error } = await client.auth.signOut();
   reloadAll();
   if (error) {
-    return { ok: false, message: `Abmelden fehlgeschlagen: ${error.message}` };
+    return { ok: false, message: msg("service.auth.signOutFailed", { detail: error.message }) };
   }
-  return { ok: true, message: "Abgemeldet." };
+  return { ok: true, message: msg("service.auth.signedOut") };
 }
