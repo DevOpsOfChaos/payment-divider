@@ -100,3 +100,4 @@ or anything implying pressure, escalation or legal assessment.
 | Recurring costs | shared-subscriptions-v0.1 | #85, #92 |
 | Boundary (this doc) | mvp1b-boundary-v0.1 | #93 |
 | Sync/backup model | free-sync-premium-backup-v0.1 | #94 |
+| Shared alpha readiness | shared-alpha-backend-readiness v0.1 (architecture) | #108 |
