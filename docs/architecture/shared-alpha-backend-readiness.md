@@ -129,7 +129,7 @@ Profile-tab card is hidden (`apps/mobile/src/config/app-env.ts`, unit-tested).
 | --- | --- | --- |
 | Local-private storage decision (2.1) | **decided** (#126): owner-private EU rows for alpha; #93/#94 updated; device-only stays later option (#129) | Done |
 | Supabase project region | create alpha project in EU region, document here | **Blocker** |
-| Real auth | gate half **done** (#134): dev session hard-blocked outside `EXPO_PUBLIC_APP_ENV=local`. Remaining: real sign-up/sign-in flow for testers → #135 | **Blocker** (#135) |
+| Real auth | **done** (#134 gate + #135 flow): e-mail+password sign-up/sign-in/sign-out, AsyncStorage session persistence, RLS-scoped profile bootstrap; local-stack smoke 9/9 PASS (`apps/mobile/scripts/auth-flow-smoke.ts`). Re-verify against the shared project once it exists | Done (re-check on shared project) |
 | Secrets handling | env-tier separation **done** (#134): `EXPO_PUBLIC_APP_ENV` local / shared-alpha / production, fail-closed, names documented in `.env.example` (placeholders only). Remaining: shared project URL/publishable key distribution for testers; service keys never in repo/app | **Blocker** (distribution) |
 | Migration deploy path | defined way to apply `supabase/migrations/` to the shared project (CLI `db push` from a maintainer machine or CI job with scoped token — decision + doc) | **Blocker** |
 | RLS verification against shared project | run the smoke suite (or an equivalent seeded check) once against the alpha project before invites; local 33/33 is necessary but not sufficient | **Blocker** |
@@ -145,8 +145,10 @@ Profile-tab card is hidden (`apps/mobile/src/config/app-env.ts`, unit-tested).
 resolved via #126 — owner-private EU rows):
 
 1. EU region confirmed at project creation.
-2. Real auth replacing the dev session — the dev session is hard-blocked in
-   shared builds since #134; the sign-in flow itself is #135.
+2. ~~Real auth replacing the dev session~~ — done: dev session hard-blocked
+   in shared builds (#134), e-mail+password flow with session persistence and
+   profile bootstrap (#135, local-stack smoke 9/9). Re-verify on the shared
+   project.
 3. Secrets/env separation for shared config — env tiers exist since #134;
    tester config distribution still open.
 4. Migration deploy path.

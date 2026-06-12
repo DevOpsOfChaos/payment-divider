@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useState } from "react";
 import { Pressable } from "react-native";
@@ -9,7 +9,8 @@ import {
   getSupabaseSessionUserId,
   useLedgerVersion,
 } from "../data";
-import { getDevSessionBlockedHint, isDevSessionAllowed } from "../config/app-env";
+import { isDevSessionAllowed } from "../config/app-env";
+import { signInWithPassword, signOut, signUpWithPassword } from "../services/auth";
 import { endDevSession, startDevSession } from "../services/dev-session";
 import type {
   PaymentControlMock,
@@ -17,6 +18,120 @@ import type {
   ProfileIdentityRowMock,
   VisibilityProfileMock,
 } from "../mock-data/profile";
+
+function AuthCard() {
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | undefined>(undefined);
+  const sessionUserId = getSupabaseSessionUserId();
+
+  async function run(action: () => Promise<{ message: string }>) {
+    setBusy(true);
+    try {
+      const result = await action();
+      setMessage(result.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sessionUserId) {
+    return (
+      <View style={styles.subCard}>
+        <Text style={styles.subCardTitle}>Konto</Text>
+        <Text style={styles.subCardDetail}>Angemeldet · Daten werden RLS-gescoped geladen.</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => run(signOut)}
+          style={styles.devButton}
+        >
+          <Text style={styles.devButtonText}>Abmelden</Text>
+        </Pressable>
+        {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+      </View>
+    );
+  }
+
+  const isSignUp = mode === "sign-up";
+  return (
+    <View style={styles.subCard}>
+      <Text style={styles.subCardTitle}>{isSignUp ? "Konto erstellen" : "Anmelden"}</Text>
+      <Text style={styles.subCardDetail}>
+        E-Mail und Passwort. Keine Session bedeutet: RLS blendet alle Daten aus.
+      </Text>
+      <TextInput
+        accessibilityLabel="E-Mail"
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        onChangeText={setEmail}
+        placeholder="E-Mail"
+        style={styles.authInput}
+        value={email}
+      />
+      <TextInput
+        accessibilityLabel="Passwort"
+        autoCapitalize="none"
+        onChangeText={setPassword}
+        placeholder="Passwort"
+        secureTextEntry
+        style={styles.authInput}
+        value={password}
+      />
+      {isSignUp ? (
+        <>
+          <TextInput
+            accessibilityLabel="Anzeigename"
+            onChangeText={setDisplayName}
+            placeholder="Anzeigename"
+            style={styles.authInput}
+            value={displayName}
+          />
+          <TextInput
+            accessibilityLabel="Benutzername (optional)"
+            autoCapitalize="none"
+            onChangeText={setUsername}
+            placeholder="Benutzername (optional)"
+            style={styles.authInput}
+            value={username}
+          />
+        </>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() =>
+          run(() =>
+            isSignUp
+              ? signUpWithPassword(email, password, {
+                  displayName,
+                  username: username.trim() ? username : undefined,
+                })
+              : signInWithPassword(email, password),
+          )
+        }
+        style={styles.devButton}
+      >
+        <Text style={styles.devButtonText}>{isSignUp ? "Konto erstellen" : "Anmelden"}</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => setMode(isSignUp ? "sign-in" : "sign-up")}
+      >
+        <Text style={styles.authSwitchText}>
+          {isSignUp ? "Schon ein Konto? Anmelden" : "Neu hier? Konto erstellen"}
+        </Text>
+      </Pressable>
+      {message ? <Text style={styles.subCardDetail}>{message}</Text> : null}
+    </View>
+  );
+}
 
 function DevSessionCard() {
   const [busy, setBusy] = useState(false);
@@ -123,16 +238,8 @@ export function ProfileScreen() {
       <Text style={styles.screenTitle}>{PROFILE.title}</Text>
       <Text style={styles.screenPurpose}>{PROFILE.subtitle}</Text>
 
-      {isSupabaseLocal ? (
-        isDevSessionAllowed() ? (
-          <DevSessionCard />
-        ) : (
-          <View style={styles.subCard}>
-            <Text style={styles.subCardTitle}>Anmeldung</Text>
-            <Text style={styles.subCardDetail}>{getDevSessionBlockedHint()}</Text>
-          </View>
-        )
-      ) : null}
+      {isSupabaseLocal ? <AuthCard /> : null}
+      {isSupabaseLocal && isDevSessionAllowed() ? <DevSessionCard /> : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Identität</Text>
@@ -301,6 +408,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: "#4f463b",
+  },
+  authInput: {
+    borderWidth: 1,
+    borderColor: "#ded4c5",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#1f1b16",
+    backgroundColor: "#fffdf8",
+  },
+  authSwitchText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6f6658",
+    textAlign: "center",
+    marginTop: 6,
   },
   devButton: {
     paddingVertical: 12,

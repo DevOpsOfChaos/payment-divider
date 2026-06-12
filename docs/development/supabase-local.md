@@ -71,11 +71,25 @@ The mobile app distinguishes three environment tiers via `EXPO_PUBLIC_APP_ENV` (
 
 | Tier | `EXPO_PUBLIC_APP_ENV` | Auth | Status |
 | --- | --- | --- | --- |
-| Local dev | `local` (or unset) | dev session allowed (fixed local test user, local stack only) | this document |
-| Shared alpha | `shared-alpha` | dev session **hard-blocked**; requires real Supabase auth (sign-up/sign-in, follow-up issue) | no shared project exists yet |
+| Local dev | `local` (or unset) | real e-mail+password auth (#135) plus the dev session (fixed local test user, local stack only) | this document |
+| Shared alpha | `shared-alpha` | dev session **hard-blocked**; real e-mail+password auth via the Profile tab (#135) | no shared project exists yet |
 | Production | `production` (later) | real auth only, same hard block | not started |
 
 The gate is fail-closed: any value other than exactly `local` (including typos) is treated as `production`, so `startDevSession` refuses to run and the Profile tab hides the dev-session card (`apps/mobile/src/config/app-env.ts`). Env variable names are documented in `.env.example` with placeholders only — never real values, never service/secret keys.
+
+## Real auth flow (#135)
+
+The Profile tab offers e-mail+password sign-up/sign-in/sign-out in `supabase-local` mode (`apps/mobile/src/services/auth.ts`). Sessions persist in AsyncStorage; token auto-refresh runs while the app is foregrounded. Sign-up bootstraps the own `profiles` row (`profile-bootstrap.ts`: display name required, username optional, nothing else — no phone, no contact data) through the existing `profiles_insert_own` RLS policy; existing profiles are never overwritten. No OAuth, no magic links, no redirects.
+
+An end-to-end smoke script exercises the flow against the running local stack (sign-up, RLS-scoped bootstrap, idempotency, forbidden cross-user insert, sign-out/sign-in, wrong password):
+
+```powershell
+$env:SUPABASE_URL = "http://127.0.0.1:54321"
+$env:SUPABASE_PUBLIC_KEY = "<publishable key from supabase status>"
+corepack pnpm --filter @payment-divider/mobile exec tsx scripts/auth-flow-smoke.ts
+```
+
+It refuses non-local URLs by design. Last run 2026-06-12: 9/9 PASS.
 
 ## Mobile data modes
 
