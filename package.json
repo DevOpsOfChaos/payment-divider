@@ -10,6 +10,7 @@
   "scripts": {
     "db:boundary-check": "node scripts/check-sql-boundaries.mjs",
     "db:check": "corepack pnpm db:lint && corepack pnpm db:reset",
+    "db:gen-types": "npx -y supabase@2.105.0 gen types typescript --local > apps/mobile/src/services/database.types.ts",
     "db:lint": "supabase db lint",
     "db:reset": "supabase db reset",
     "db:rls-test": "node scripts/run-rls-smoke-tests.mjs",

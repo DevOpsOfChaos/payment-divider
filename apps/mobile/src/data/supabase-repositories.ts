@@ -14,7 +14,6 @@ import {
   type TimelineEvent,
   type User,
 } from "@payment-divider/core";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   formatBalanceLabel,
@@ -23,7 +22,8 @@ import {
 } from "../mock-data/balance-derived";
 import { mockRepositories } from "./mock-repositories";
 import { notifyExternalDataChanged } from "./local-ledger";
-import { getSupabaseClient } from "../services/supabase-client";
+import type { Database } from "../services/database.types";
+import { getSupabaseClient, type AppSupabaseClient } from "../services/supabase-client";
 import {
   createExpenseWithShares,
   createGroupWithDefaults,
@@ -63,10 +63,13 @@ let loadErrorMessage: string | undefined;
 let remote: RemoteData | undefined;
 let currentUserId: EntityId | undefined;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type Row = Record<string, any>;
+// Generated row types: column names and nullability come straight from the
+// local schema (database.types.ts, regenerated via `pnpm db:gen-types`).
+// Enum-like text columns are constrained by CHECK constraints in the database
+// and narrowed to the core unions here.
+type Tables = Database["public"]["Tables"];
 
-function mapUser(row: Row): User {
+function mapUser(row: Tables["profiles"]["Row"]): User {
   return {
     id: row.id,
     displayName: row.display_name,
@@ -77,11 +80,11 @@ function mapUser(row: Row): User {
   };
 }
 
-function mapGroup(row: Row): Group {
+function mapGroup(row: Tables["groups"]["Row"]): Group {
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
+    type: row.type as Group["type"],
     defaultCurrency: row.default_currency_code,
     createdBy: row.created_by,
     createdAt: row.created_at,
@@ -89,12 +92,12 @@ function mapGroup(row: Row): Group {
   };
 }
 
-function mapContext(row: Row): GroupContext {
+function mapContext(row: Tables["group_contexts"]["Row"]): GroupContext {
   return {
     id: row.id,
     groupId: row.group_id,
     name: row.name,
-    type: row.type,
+    type: row.type as GroupContext["type"],
     startDate: row.start_date ?? undefined,
     endDate: row.end_date ?? undefined,
     defaultCurrency: row.default_currency_code ?? undefined,
@@ -102,18 +105,18 @@ function mapContext(row: Row): GroupContext {
   };
 }
 
-function mapMember(row: Row): GroupMember {
+function mapMember(row: Tables["group_members"]["Row"]): GroupMember {
   return {
     id: row.id,
     groupId: row.group_id,
     userId: row.user_id,
-    role: row.role,
+    role: row.role as GroupMember["role"],
     joinedAt: row.joined_at,
     leftAt: row.left_at ?? undefined,
   };
 }
 
-function mapContextMember(row: Row): ContextMember {
+function mapContextMember(row: Tables["context_members"]["Row"]): ContextMember {
   return {
     id: row.id,
     contextId: row.context_id,
@@ -123,7 +126,7 @@ function mapContextMember(row: Row): ContextMember {
   };
 }
 
-function mapExpense(row: Row): Expense {
+function mapExpense(row: Tables["expenses"]["Row"]): Expense {
   return {
     id: row.id,
     groupId: row.group_id,
@@ -141,18 +144,18 @@ function mapExpense(row: Row): Expense {
   };
 }
 
-function mapShare(row: Row): ExpenseShare {
+function mapShare(row: Tables["expense_shares"]["Row"]): ExpenseShare {
   return {
     id: row.id,
     expenseId: row.expense_id,
     userId: row.user_id,
-    shareType: row.share_type,
+    shareType: row.share_type as ExpenseShare["shareType"],
     amount: row.amount_minor,
     currency: row.currency_code,
   };
 }
 
-function mapAction(row: Row): PaymentAction {
+function mapAction(row: Tables["payment_actions"]["Row"]): PaymentAction {
   return {
     id: row.id,
     groupId: row.group_id,
@@ -161,7 +164,7 @@ function mapAction(row: Row): PaymentAction {
     payeeId: row.payee_id,
     amount: row.amount_minor,
     currency: row.currency_code,
-    status: row.status,
+    status: row.status as PaymentAction["status"],
     createdAt: row.created_at,
     markedPaidAt: row.marked_paid_at ?? undefined,
     confirmedByPayeeAt: row.confirmed_by_payee_at ?? undefined,
@@ -169,44 +172,49 @@ function mapAction(row: Row): PaymentAction {
   };
 }
 
-function mapTimelineEvent(row: Row): TimelineEvent {
+function mapTimelineEvent(row: Tables["timeline_events"]["Row"]): TimelineEvent {
   return {
     id: row.id,
     groupId: row.group_id,
     contextId: row.context_id ?? undefined,
     actorUserId: row.actor_user_id ?? "",
-    eventType: row.event_type,
-    entityType: row.entity_type,
+    eventType: row.event_type as TimelineEvent["eventType"],
+    entityType: row.entity_type as TimelineEvent["entityType"],
     entityId: row.entity_id ?? "",
     createdAt: row.created_at,
   };
 }
 
-function mapInboxItem(row: Row): InboxItem {
+function mapInboxItem(row: Tables["inbox_items"]["Row"]): InboxItem {
   return {
     id: row.id,
     userId: row.user_id,
     groupId: row.group_id ?? undefined,
     contextId: row.context_id ?? undefined,
-    type: row.type,
-    status: row.status,
-    relatedEntityType: row.related_entity_type ?? "payment_action",
+    type: row.type as InboxItem["type"],
+    status: row.status as InboxItem["status"],
+    relatedEntityType: (row.related_entity_type ??
+      "payment_action") as InboxItem["relatedEntityType"],
     relatedEntityId: row.related_entity_id ?? "",
     createdAt: row.created_at,
     resolvedAt: row.resolved_at ?? undefined,
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
-async function selectAll(client: SupabaseClient, table: string): Promise<Row[]> {
+async function selectAll<T extends keyof Tables & string>(
+  client: AppSupabaseClient,
+  table: T,
+): Promise<Tables[T]["Row"][]> {
   const { data, error } = await client.from(table).select("*");
   if (error) {
     throw new Error(`${table}: ${error.message}`);
   }
-  return data ?? [];
+  // supabase-js cannot express "all columns of a generic table" — the result
+  // is cast back to the generated row type of the requested table.
+  return (data ?? []) as unknown as Tables[T]["Row"][];
 }
 
-async function loadRemoteData(client: SupabaseClient): Promise<void> {
+async function loadRemoteData(client: AppSupabaseClient): Promise<void> {
   const session = await client.auth.getSession();
   currentUserId = session.data.session?.user.id;
 
@@ -611,7 +619,7 @@ function buildSupabaseRecordSetup(data: RemoteData): RecordSetupData | undefined
 }
 
 async function withSession(
-  run: (client: SupabaseClient, userId: string) => Promise<WriteResult>,
+  run: (client: AppSupabaseClient, userId: string) => Promise<WriteResult>,
 ): Promise<WriteResult> {
   const client = getSupabaseClient();
   if (!client) {

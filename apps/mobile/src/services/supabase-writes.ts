@@ -1,5 +1,5 @@
 import { splitExpenseEqually } from "@payment-divider/core";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AppSupabaseClient } from "./supabase-client";
 
 import type {
   CreateExpenseInput,
@@ -12,7 +12,7 @@ import type {
 // payment execution, providers, or payment-method storage.
 
 export async function createGroupWithDefaults(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   input: CreateGroupInput,
 ): Promise<WriteResult> {
@@ -59,7 +59,7 @@ export async function createGroupWithDefaults(
 }
 
 export async function createExpenseWithShares(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   input: CreateExpenseInput,
 ): Promise<WriteResult> {

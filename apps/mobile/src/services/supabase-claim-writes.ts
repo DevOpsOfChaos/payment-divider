@@ -8,7 +8,7 @@ import {
   type ClaimStatus,
   type EntityId,
 } from "@payment-divider/core";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AppSupabaseClient } from "./supabase-client";
 
 import type { NewCounterpartyInput } from "../data/claims-repository";
 import type { WriteResult } from "../data/repositories";
@@ -23,7 +23,7 @@ import type { WriteResult } from "../data/repositories";
 // (creation-time reuse, mirroring the local-demo store); otherwise inserts a
 // new private person record.
 export async function getOrCreateCounterpartyId(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   input: NewCounterpartyInput,
 ): Promise<{ counterpartyId?: EntityId; error?: string }> {
@@ -61,7 +61,7 @@ export async function getOrCreateCounterpartyId(
 
 // Best effort: a rejected history event never rolls back the actual write.
 async function appendClaimEvent(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   claimId: EntityId,
   eventType: ClaimEvent["eventType"],
@@ -86,7 +86,7 @@ export interface CreateClaimRowInput {
 }
 
 export async function createClaim(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   input: CreateClaimRowInput,
 ): Promise<WriteResult> {
@@ -131,7 +131,7 @@ export interface RecordClaimPaymentRowInput {
 }
 
 export async function recordClaimPayment(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   input: RecordClaimPaymentRowInput,
 ): Promise<WriteResult> {
@@ -170,7 +170,7 @@ export async function recordClaimPayment(
 // anything to the other side.
 
 export async function insertClaimReminder(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   claimId: EntityId,
   remindAt: string,
@@ -196,7 +196,7 @@ export async function insertClaimReminder(
 // the row update, so the adapter and the local-demo store reject the same
 // inputs.
 export async function snoozeClaimReminderRow(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   reminder: ClaimReminder,
   remindAt: string,
 ): Promise<WriteResult> {
@@ -217,7 +217,7 @@ export async function snoozeClaimReminderRow(
 }
 
 export async function disableClaimReminderRow(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   reminder: ClaimReminder,
   disabledAt: string,
@@ -247,7 +247,7 @@ export async function disableClaimReminderRow(
 // trigger from #106 enforces the same transition table server-side, so a
 // bypassed client still cannot skip the clarification path.
 export async function transitionClaim(
-  client: SupabaseClient,
+  client: AppSupabaseClient,
   userId: string,
   claim: Claim,
   to: ClaimStatus,

@@ -11,15 +11,19 @@ import {
   summarizeClaimsByPerson,
   type Claim,
   type ClaimEvent,
+  type ClaimEventType,
   type ClaimPayment,
+  type ClaimPaymentConfirmationStatus,
   type ClaimReminder,
+  type ClaimStatus,
   type Counterparty,
+  type CounterpartyKind,
   type EntityId,
   type PersonBalanceOverview,
 } from "@payment-divider/core";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getSupabaseClient } from "../services/supabase-client";
+import type { Database } from "../services/database.types";
+import { getSupabaseClient, type AppSupabaseClient } from "../services/supabase-client";
 import {
   createClaim,
   disableClaimReminderRow,
@@ -65,14 +69,22 @@ let loadErrorMessage: string | undefined;
 let remote: ClaimsRemoteData | undefined;
 let currentUserId: EntityId | undefined;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type Row = Record<string, any>;
+// Generated row types: column names and nullability come straight from the
+// local schema (database.types.ts). Enum-like text columns are constrained by
+// CHECK constraints in the database and narrowed to the core unions here.
+type Tables = Database["public"]["Tables"];
+type CounterpartyRow = Tables["counterparties"]["Row"];
+type ClaimRow = Tables["claims"]["Row"];
+type ClaimPaymentRow = Tables["claim_payments"]["Row"];
+type ClaimEventRow = Tables["claim_events"]["Row"];
+type ClaimReminderRow = Tables["claim_reminders"]["Row"];
+type ProfileRow = Tables["profiles"]["Row"];
 
-function mapCounterparty(row: Row): Counterparty {
+function mapCounterparty(row: CounterpartyRow): Counterparty {
   return {
     id: row.id,
     ownerUserId: row.owner_user_id,
-    kind: row.kind,
+    kind: row.kind as CounterpartyKind,
     displayName: row.display_name,
     normalizedName: row.normalized_name,
     linkedUserId: row.linked_user_id ?? undefined,
@@ -82,11 +94,11 @@ function mapCounterparty(row: Row): Counterparty {
   };
 }
 
-function mapClaim(row: Row): Claim {
+function mapClaim(row: ClaimRow): Claim {
   return {
     id: row.id,
     creatorUserId: row.creator_user_id,
-    direction: row.direction,
+    direction: row.direction as Claim["direction"],
     counterpartyId: row.counterparty_id,
     sharedWithCounterparty: row.shared_with_counterparty,
     amount: row.amount_minor,
@@ -96,14 +108,14 @@ function mapClaim(row: Row): Claim {
     dueDate: row.due_date ?? undefined,
     groupId: row.group_id ?? undefined,
     contextId: row.context_id ?? undefined,
-    status: row.status,
+    status: row.status as ClaimStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at ?? undefined,
   };
 }
 
-function mapClaimPayment(row: Row): ClaimPayment {
+function mapClaimPayment(row: ClaimPaymentRow): ClaimPayment {
   return {
     id: row.id,
     claimId: row.claim_id,
@@ -112,14 +124,14 @@ function mapClaimPayment(row: Row): ClaimPayment {
     paymentDate: row.payment_date,
     note: row.note ?? undefined,
     recordedBy: row.recorded_by,
-    confirmationStatus: row.confirmation_status,
+    confirmationStatus: row.confirmation_status as ClaimPaymentConfirmationStatus,
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at ?? undefined,
     rejectedAt: row.rejected_at ?? undefined,
   };
 }
 
-function mapClaimReminder(row: Row): ClaimReminder {
+function mapClaimReminder(row: ClaimReminderRow): ClaimReminder {
   return {
     id: row.id,
     claimId: row.claim_id,
@@ -131,26 +143,30 @@ function mapClaimReminder(row: Row): ClaimReminder {
   };
 }
 
-function mapClaimEvent(row: Row): ClaimEvent {
+function mapClaimEvent(row: ClaimEventRow): ClaimEvent {
   return {
     id: row.id,
     claimId: row.claim_id,
     actorUserId: row.actor_user_id ?? undefined,
-    eventType: row.event_type,
+    eventType: row.event_type as ClaimEventType,
     createdAt: row.created_at,
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
-async function selectAll(client: SupabaseClient, table: string): Promise<Row[]> {
+async function selectAll<T extends keyof Tables & string>(
+  client: AppSupabaseClient,
+  table: T,
+): Promise<Tables[T]["Row"][]> {
   const { data, error } = await client.from(table).select("*");
   if (error) {
     throw new Error(`${table}: ${error.message}`);
   }
-  return data ?? [];
+  // supabase-js cannot express "all columns of a generic table" — the result
+  // is cast back to the generated row type of the requested table.
+  return (data ?? []) as unknown as Tables[T]["Row"][];
 }
 
-async function loadClaimsData(client: SupabaseClient): Promise<void> {
+async function loadClaimsData(client: AppSupabaseClient): Promise<void> {
   const session = await client.auth.getSession();
   currentUserId = session.data.session?.user.id;
 
@@ -171,7 +187,7 @@ async function loadClaimsData(client: SupabaseClient): Promise<void> {
     events: events.map(mapClaimEvent),
     reminders: reminders.map(mapClaimReminder),
     profileNames: new Map(
-      profiles.map((row) => [row.id as EntityId, row.display_name as string]),
+      profiles.map((row: ProfileRow) => [row.id, row.display_name]),
     ),
   };
 }
@@ -383,7 +399,7 @@ function buildOverviewPositions(data: ClaimsRemoteData): PersonBalanceOverview[]
 }
 
 async function withSession(
-  run: (client: SupabaseClient, userId: string) => Promise<WriteResult>,
+  run: (client: AppSupabaseClient, userId: string) => Promise<WriteResult>,
 ): Promise<WriteResult> {
   const client = getSupabaseClient();
   if (!client) {

@@ -71,6 +71,26 @@ The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PU
 
 In `supabase-local` mode the ledger screens (groups, expenses, settlement) read from the local stack with the 1A write paths (group, expense). Claims additionally go through `apps/mobile/src/data/supabase-claims.ts` (#105): counterparties, claims, claim payments and claim events are read and written behind the `ClaimsRepository` interface, status changes run through `canTransitionClaimStatus` client-side with the #106 trigger as server authority, and the person balance overview stays a client-side derivation via core (`buildPersonBalanceOverview`) — there is no person-balance table. Claim reminders (#116) are read and written through the same adapter: strictly personal rows (owner-only RLS), set/snooze/disable via the core helpers (`getDueReminders`, `snoozeReminder`, `disableReminder`), never sent anywhere, no push.
 
+## Generated database types
+
+`apps/mobile/src/services/database.types.ts` is generated from the local
+schema and committed (#118). The Supabase client is typed against it
+(`createClient<Database>`), so table names, row shapes and insert/update
+payloads in the adapters are compile-time checked; the hand-written part is
+reduced to the column→core-field mapping plus narrowing the CHECK-constrained
+text columns to the core unions.
+
+Regenerate after any migration change (local stack must be running):
+
+```powershell
+corepack pnpm db:gen-types
+```
+
+The script pins CLI 2.105.0: `supabase gen types` in 2.106.0 demands a
+platform access token even for `--local` (regression); the pinned version
+works tokenless against the local stack, which this repo requires (no
+`supabase login`, no access tokens).
+
 ## RLS behavior smoke tests
 
 `supabase/tests/rls_smoke_test.sql` exercises RLS behavior (not just syntax) against the running local stack: group visibility per member, expense inserts allowed for members and rejected for non-members, the two allowed payment-action status transitions, column immutability via triggers, private-claims visibility (creator-only free-text claims, linked-counterparty access with status-only edits, outsider isolation, immutable claim-payment cores), server-side claim status transitions (#106), and the claim write paths used by the supabase-local adapter (payments only as oneself, events only as the acting user, reminders strictly personal). The whole test runs in one transaction and rolls back, leaving the database clean.
