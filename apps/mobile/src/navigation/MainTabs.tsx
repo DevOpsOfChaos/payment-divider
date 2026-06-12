@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlaceholderScreen } from "../screens/PlaceholderScreen";
-import { TABS, type TabId } from "./tabs";
+import { TAB_LABEL_KEYS, TABS, type TabId } from "./tabs";
 
 export function MainTabs() {
+  const { t } = useTranslation();
   const [activeTabId, setActiveTabId] = useState<TabId>("overview");
   const activeTab = TABS.find((tab) => tab.id === activeTabId) ?? TABS[0];
   const ActiveScreen = activeTab.component;
@@ -26,7 +28,7 @@ export function MainTabs() {
               style={[styles.tabButton, isActive && styles.tabButtonActive]}
             >
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                {tab.label}
+                {t(TAB_LABEL_KEYS[tab.id])}
               </Text>
             </Pressable>
           );

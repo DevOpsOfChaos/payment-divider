@@ -1,21 +1,20 @@
 import type { PropsWithChildren } from "react";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export function AppShell({ children }: PropsWithChildren) {
+  const { t } = useTranslation();
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.appShell}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>Payment Divider</Text>
-          <Text style={styles.headerTitle}>MVP 1A Demo</Text>
-          <Text style={styles.headerCopy}>
-            Lokale Demo mit Mock-Daten: nichts wird synchronisiert, es gibt kein
-            Backend und keine Zahlungsausführung.
-          </Text>
+          <Text style={styles.eyebrow}>{t("shell.brand")}</Text>
+          <Text style={styles.headerTitle}>{t("shell.title")}</Text>
+          <Text style={styles.headerCopy}>{t("shell.copy")}</Text>
           <View style={styles.demoBadgeRow}>
-            <Text style={styles.demoBadge}>Nur lokal</Text>
-            <Text style={styles.demoBadge}>Nicht synchronisiert</Text>
-            <Text style={styles.demoBadge}>Keine Zahlungsausführung</Text>
+            <Text style={styles.demoBadge}>{t("shell.badges.localOnly")}</Text>
+            <Text style={styles.demoBadge}>{t("shell.badges.notSynced")}</Text>
+            <Text style={styles.demoBadge}>{t("shell.badges.noPaymentExecution")}</Text>
           </View>
         </View>
 

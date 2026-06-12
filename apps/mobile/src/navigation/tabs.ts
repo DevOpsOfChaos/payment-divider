@@ -9,6 +9,19 @@ import { RecordScreen } from "../screens/RecordScreen";
 
 export type TabId = "overview" | "groups" | "record" | "claims" | "inbox" | "profile";
 
+// Tab labels are UI copy and live in the i18n locale files; the map keeps the
+// keys compile-checked against the typed t(). The ScreenContent blocks below
+// are MVP-1A placeholder/demo content (only rendered when a tab has no
+// component), deliberately not extracted as i18n copy.
+export const TAB_LABEL_KEYS = {
+  overview: "navigation.tabs.overview",
+  groups: "navigation.tabs.groups",
+  record: "navigation.tabs.record",
+  claims: "navigation.tabs.claims",
+  inbox: "navigation.tabs.inbox",
+  profile: "navigation.tabs.profile",
+} as const satisfies Record<TabId, string>;
+
 export interface ScreenContent {
   title: string;
   purpose: string;
@@ -17,7 +30,6 @@ export interface ScreenContent {
 
 export interface TabDefinition {
   id: TabId;
-  label: string;
   screen: ScreenContent;
   component?: ComponentType;
 }
@@ -25,7 +37,6 @@ export interface TabDefinition {
 export const TABS: TabDefinition[] = [
   {
     id: "overview",
-    label: "Übersicht",
     component: OverviewScreen,
     screen: {
       title: "Übersicht",
@@ -39,7 +50,6 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "groups",
-    label: "Gruppen",
     component: GroupsScreen,
     screen: {
       title: "Gruppen",
@@ -49,7 +59,6 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "record",
-    label: "Erfassen",
     component: RecordScreen,
     screen: {
       title: "Erfassen",
@@ -65,7 +74,6 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "claims",
-    label: "Forderungen",
     component: ClaimsScreen,
     screen: {
       title: "Forderungen",
@@ -75,7 +83,6 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "inbox",
-    label: "Inbox",
     component: InboxScreen,
     screen: {
       title: "Inbox",
@@ -89,7 +96,6 @@ export const TABS: TabDefinition[] = [
   },
   {
     id: "profile",
-    label: "Profil",
     component: ProfileScreen,
     screen: {
       title: "Profil",
