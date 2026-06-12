@@ -33,7 +33,7 @@ MVP 1A view in `mvp1a-readiness.md` for data-mode questions.
   UI, set/snooze/disable in both data modes via core helpers. Strictly
   personal metadata (owner-only RLS); nothing is sent, no push.
 - Verified: migrations replay cleanly (`db reset`), `db lint` clean, RLS
-  behavior smoke tests 32/32 PASS (`pnpm db:rls-test`).
+  behavior smoke tests 33/33 PASS (`pnpm db:rls-test`).
 
 ## Setup
 
