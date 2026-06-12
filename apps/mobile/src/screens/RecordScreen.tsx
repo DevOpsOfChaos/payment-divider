@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { splitExpenseEqually, type EntityId } from "@payment-divider/core";
@@ -56,6 +57,7 @@ function buildInitialSelection(setup: RecordSetupData): Set<EntityId> {
 }
 
 export function RecordScreen() {
+  const { t } = useTranslation();
   const ledgerVersion = useLedgerVersion();
   const setup = useMemo(
     () => appRepositories.getRecordSetup(),
@@ -89,13 +91,13 @@ export function RecordScreen() {
 
   const errors: string[] = [];
   if (amountMinor === undefined || amountMinor <= 0) {
-    errors.push("Betrag muss größer als 0 sein.");
+    errors.push(t("record.errors.amount"));
   }
   if (!payerExists) {
-    errors.push("Zahler erforderlich.");
+    errors.push(t("record.errors.payer"));
   }
   if (selectedParticipants.length === 0) {
-    errors.push("Mindestens ein Teilnehmer erforderlich.");
+    errors.push(t("record.errors.participants"));
   }
 
   const splitPreview =
@@ -139,7 +141,7 @@ export function RecordScreen() {
         currency: setup.currency,
         paidByUserId: payerUserId,
         date: setup.expenseDate,
-        title: title.trim() || "Ausgabe",
+        title: title.trim() || t("record.defaultTitle"),
         participantUserIds: selectedParticipants.map((participant) => participant.userId),
       });
       setSaveMessage(result.message);
@@ -171,43 +173,41 @@ export function RecordScreen() {
 
   return (
     <View style={styles.screenCard}>
-      <Text style={styles.screenTitle}>Ausgabe erfassen</Text>
-      <Text style={styles.screenPurpose}>
-        Lokale Erfassung: nichts wird synchronisiert, keine Zahlung wird ausgeführt.
-      </Text>
+      <Text style={styles.screenTitle}>{t("record.title")}</Text>
+      <Text style={styles.screenPurpose}>{t("record.purpose")}</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Betrag</Text>
+        <Text style={styles.sectionLabel}>{t("record.amount.label")}</Text>
         <TextInput
           style={styles.input}
           value={amountText}
           onChangeText={setAmountText}
-          placeholder="z. B. 42,80"
+          placeholder={t("record.amount.placeholder")}
           keyboardType="decimal-pad"
-          accessibilityLabel="Betrag"
+          accessibilityLabel={t("record.amount.label")}
         />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Titel</Text>
+        <Text style={styles.sectionLabel}>{t("record.titleField.label")}</Text>
         <TextInput
           style={styles.input}
           value={title}
           onChangeText={setTitle}
-          placeholder="z. B. Abendessen"
-          accessibilityLabel="Titel"
+          placeholder={t("record.titleField.placeholder")}
+          accessibilityLabel={t("record.titleField.label")}
         />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Gruppe / Aktivität</Text>
+        <Text style={styles.sectionLabel}>{t("record.contextLabel")}</Text>
         <View style={styles.valueCard}>
           <Text style={styles.valueText}>{setup.contextLabel}</Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Bezahlt von</Text>
+        <Text style={styles.sectionLabel}>{t("record.payerLabel")}</Text>
         <View style={styles.sectionCard}>
           {setup.payerOptions.map((option) => (
             <SelectionRow
@@ -221,26 +221,22 @@ export function RecordScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Teilnehmer</Text>
+        <Text style={styles.sectionLabel}>{t("record.participants.label")}</Text>
         <View style={styles.sectionCard}>{activeParticipants.map(renderParticipant)}</View>
-        <Text style={styles.compactHint}>
-          Aktive Teilnehmer für Datum und Aktivität sind vorausgewählt.
-        </Text>
+        <Text style={styles.compactHint}>{t("record.participants.hint")}</Text>
       </View>
 
       {pausedParticipants.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Pausiert an diesem Datum</Text>
+          <Text style={styles.sectionLabel}>{t("record.participants.pausedLabel")}</Text>
           <View style={styles.sectionCard}>{pausedParticipants.map(renderParticipant)}</View>
-          <Text style={styles.compactHint}>
-            Pausierte Teilnehmer können trotz Pause manuell einbezogen werden.
-          </Text>
+          <Text style={styles.compactHint}>{t("record.participants.pausedHint")}</Text>
         </View>
       ) : null}
 
       {splitPreview.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Aufteilung (gleichmäßig)</Text>
+          <Text style={styles.sectionLabel}>{t("record.splitPreviewLabel")}</Text>
           <View style={styles.sectionCard}>
             {splitPreview.map((share) => (
               <View key={share.name} style={styles.previewRow}>
@@ -270,8 +266,8 @@ export function RecordScreen() {
       >
         <Text style={styles.saveButtonText}>
           {getDataSourceMode() === "supabase-local"
-            ? "Ausgabe lokal in Supabase speichern"
-            : "Ausgabe lokal speichern"}
+            ? t("record.save.supabaseLocal")
+            : t("record.save.localDemo")}
         </Text>
       </Pressable>
 
@@ -279,26 +275,25 @@ export function RecordScreen() {
 
       {drafts.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Lokale Demo-Drafts</Text>
+          <Text style={styles.sectionLabel}>{t("record.drafts.label")}</Text>
           <View style={styles.sectionCard}>
             {drafts.map((draft) => (
               <View key={draft.id} style={styles.draftRow}>
                 <View style={styles.previewRow}>
-                  <Text style={styles.previewName}>{draft.title ?? "Ausgabe"}</Text>
+                  <Text style={styles.previewName}>{draft.title ?? t("record.defaultTitle")}</Text>
                   <Text style={styles.previewAmount}>{formatMoney(draft.amount)}</Text>
                 </View>
                 <Text style={styles.draftMeta}>
-                  Bezahlt von{" "}
-                  {setup.payerOptions.find((option) => option.userId === draft.paidByUserId)
-                    ?.name ?? draft.paidByUserId}{" "}
-                  · fließt in die Demo-Salden ein
+                  {t("record.drafts.paidBy", {
+                    name:
+                      setup.payerOptions.find((option) => option.userId === draft.paidByUserId)
+                        ?.name ?? draft.paidByUserId,
+                  })}
                 </Text>
               </View>
             ))}
           </View>
-          <Text style={styles.compactHint}>
-            Demo-Draft · nur lokal · nicht synchronisiert · keine Zahlungsausführung.
-          </Text>
+          <Text style={styles.compactHint}>{t("record.drafts.hint")}</Text>
         </View>
       ) : null}
     </View>

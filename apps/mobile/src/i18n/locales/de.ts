@@ -31,6 +31,78 @@ export const de = {
       toSignUp: "Neu hier? Konto erstellen",
     },
   },
+  shell: {
+    brand: "Payment Divider",
+    title: "MVP 1A Demo",
+    copy: "Lokale Demo mit Mock-Daten: nichts wird synchronisiert, es gibt kein Backend und keine Zahlungsausführung.",
+    badges: {
+      localOnly: "Nur lokal",
+      notSynced: "Nicht synchronisiert",
+      noPaymentExecution: "Keine Zahlungsausführung",
+    },
+  },
+  navigation: {
+    tabs: {
+      overview: "Übersicht",
+      groups: "Gruppen",
+      record: "Erfassen",
+      claims: "Forderungen",
+      inbox: "Inbox",
+      profile: "Profil",
+    },
+  },
+  groups: {
+    title: "Gruppen",
+    purpose:
+      "Dauerhafte Gruppen bleiben der soziale Raum. Aktivitäten darunter zeigen konkrete Ledger-Kontexte, ohne Zahlungsausführung im App-Flow.",
+    switcherHint:
+      "Lokaler Mock-Umschalter statt echter Navigation, damit die Detail-Screens im MVP-1A-Prototyp sichtbar bleiben.",
+    modes: {
+      list: "Gruppenliste",
+      groupDetail: "Gruppendetail",
+      activityDetail: "Aktivitätsdetail",
+    },
+    memberCount: "{{n}} Mitglieder",
+    activitiesLabel: "Aktivitäten",
+    viewDetails: "Details ansehen",
+    openActivity: "Aktivität öffnen",
+  },
+  record: {
+    title: "Ausgabe erfassen",
+    purpose: "Lokale Erfassung: nichts wird synchronisiert, keine Zahlung wird ausgeführt.",
+    amount: {
+      label: "Betrag",
+      placeholder: "z. B. 42,80",
+    },
+    titleField: {
+      label: "Titel",
+      placeholder: "z. B. Abendessen",
+    },
+    contextLabel: "Gruppe / Aktivität",
+    payerLabel: "Bezahlt von",
+    participants: {
+      label: "Teilnehmer",
+      hint: "Aktive Teilnehmer für Datum und Aktivität sind vorausgewählt.",
+      pausedLabel: "Pausiert an diesem Datum",
+      pausedHint: "Pausierte Teilnehmer können trotz Pause manuell einbezogen werden.",
+    },
+    splitPreviewLabel: "Aufteilung (gleichmäßig)",
+    errors: {
+      amount: "Betrag muss größer als 0 sein.",
+      payer: "Zahler erforderlich.",
+      participants: "Mindestens ein Teilnehmer erforderlich.",
+    },
+    save: {
+      supabaseLocal: "Ausgabe lokal in Supabase speichern",
+      localDemo: "Ausgabe lokal speichern",
+    },
+    defaultTitle: "Ausgabe",
+    drafts: {
+      label: "Lokale Demo-Drafts",
+      paidBy: "Bezahlt von {{name}} · fließt in die Demo-Salden ein",
+      hint: "Demo-Draft · nur lokal · nicht synchronisiert · keine Zahlungsausführung.",
+    },
+  },
   overview: {
     title: "Übersicht",
     purpose:

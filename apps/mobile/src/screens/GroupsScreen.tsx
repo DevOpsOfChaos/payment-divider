@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ActivityDetailScreen } from "./ActivityDetailScreen";
@@ -43,6 +44,7 @@ function ModeButton({
 }
 
 export function GroupsScreen() {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<GroupViewMode>("list");
   useLedgerVersion();
   const GROUPS = appRepositories.getGroups();
@@ -51,17 +53,17 @@ export function GroupsScreen() {
     <View style={styles.screenStack}>
       <View style={styles.modeSwitcher}>
         <ModeButton
-          label="Gruppenliste"
+          label={t("groups.modes.list")}
           active={viewMode === "list"}
           onPress={() => setViewMode("list")}
         />
         <ModeButton
-          label="Gruppendetail"
+          label={t("groups.modes.groupDetail")}
           active={viewMode === "group-detail"}
           onPress={() => setViewMode("group-detail")}
         />
         <ModeButton
-          label="Aktivitätsdetail"
+          label={t("groups.modes.activityDetail")}
           active={viewMode === "activity-detail"}
           onPress={() => setViewMode("activity-detail")}
         />
@@ -72,16 +74,10 @@ export function GroupsScreen() {
 
       {viewMode === "list" ? (
         <View style={styles.screenCard}>
-          <Text style={styles.screenTitle}>Gruppen</Text>
-          <Text style={styles.screenPurpose}>
-            Dauerhafte Gruppen bleiben der soziale Raum. Aktivitäten darunter
-            zeigen konkrete Ledger-Kontexte, ohne Zahlungsausführung im App-Flow.
-          </Text>
+          <Text style={styles.screenTitle}>{t("groups.title")}</Text>
+          <Text style={styles.screenPurpose}>{t("groups.purpose")}</Text>
 
-          <Text style={styles.switcherHint}>
-            Lokaler Mock-Umschalter statt echter Navigation, damit die
-            Detail-Screens im MVP-1A-Prototyp sichtbar bleiben.
-          </Text>
+          <Text style={styles.switcherHint}>{t("groups.switcherHint")}</Text>
 
           <View style={styles.groupList}>
             {GROUPS.map((group) => (
@@ -90,7 +86,7 @@ export function GroupsScreen() {
                   <View style={styles.groupHeaderCopy}>
                     <Text style={styles.groupName}>{group.name}</Text>
                     <Text style={styles.groupMeta}>
-                      {group.contextLabel} · {group.memberCount} Mitglieder
+                      {group.contextLabel} · {t("groups.memberCount", { n: group.memberCount })}
                     </Text>
                   </View>
                   <Text style={[styles.groupBalance, getBalanceStyle(group.balanceTone)]}>
@@ -101,7 +97,7 @@ export function GroupsScreen() {
                 <Text style={styles.helperText}>{group.helperText}</Text>
 
                 <View style={styles.activitiesSection}>
-                  <Text style={styles.sectionLabel}>Aktivitäten</Text>
+                  <Text style={styles.sectionLabel}>{t("groups.activitiesLabel")}</Text>
                   <View style={styles.activitiesList}>
                     {group.activities.map((activity) => (
                       <View key={`${group.name}-${activity.name}`} style={styles.activityRow}>
@@ -124,7 +120,7 @@ export function GroupsScreen() {
                       onPress={() => setViewMode("group-detail")}
                       style={styles.previewButton}
                     >
-                      <Text style={styles.previewButtonText}>Details ansehen</Text>
+                      <Text style={styles.previewButtonText}>{t("groups.viewDetails")}</Text>
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
@@ -132,7 +128,7 @@ export function GroupsScreen() {
                       style={styles.previewButtonSecondary}
                     >
                       <Text style={styles.previewButtonSecondaryText}>
-                        Aktivität öffnen
+                        {t("groups.openActivity")}
                       </Text>
                     </Pressable>
                   </View>
