@@ -72,7 +72,7 @@ The mobile app distinguishes three environment tiers via `EXPO_PUBLIC_APP_ENV` (
 | Tier | `EXPO_PUBLIC_APP_ENV` | Auth | Status |
 | --- | --- | --- | --- |
 | Local dev | `local` (or unset) | real e-mail+password auth (#135) plus the dev session (fixed local test user, local stack only) | this document |
-| Shared alpha | `shared-alpha` | dev session **hard-blocked**; real e-mail+password auth via the Profile tab (#135) | no shared project exists yet |
+| Shared alpha | `shared-alpha` | dev session **hard-blocked**; real e-mail+password auth via the Profile tab (#135) | no shared project yet — setup runbook: `shared-alpha-supabase.md` (#138) |
 | Production | `production` (later) | real auth only, same hard block | not started |
 
 The gate is fail-closed: any value other than exactly `local` (including typos) is treated as `production`, so `startDevSession` refuses to run and the Profile tab hides the dev-session card (`apps/mobile/src/config/app-env.ts`). Env variable names are documented in `.env.example` with placeholders only — never real values, never service/secret keys.

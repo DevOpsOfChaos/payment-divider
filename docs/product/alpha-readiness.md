@@ -94,8 +94,10 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
 - Real auth exists (#135, e-mail+password); still missing for launch:
   password reset, account deletion/export, GDPR documentation.
 - Secrets management and environment separation; the dev session is env-gated
-  (#134) and the sign-in flow exists (#135), but a defined config-distribution
-  path for testers is still open.
+  (#134), the sign-in flow exists (#135), and tester config distribution plus
+  the migration deploy path are documented in the shared-project runbook
+  (`docs/development/shared-alpha-supabase.md`, #138). Open: executing the
+  runbook (EU project, deploy, shared RLS smoke — script #139).
 - RLS test suite in CI against an ephemeral stack, not just local runs.
 - Masking/encryption for personal identifiers; notification content review.
 - Wording audit: nothing may imply payment execution — the app stays a ledger.
