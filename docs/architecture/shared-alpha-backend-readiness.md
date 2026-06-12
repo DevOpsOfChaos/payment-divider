@@ -91,8 +91,8 @@ transitions), `20260611140000`/`20260612090000`/`20260612120000`/
 `20260612130000` (claims/counterparties incl. server-side status
 transitions). `authenticated` has only select/insert/update grants —
 **no DELETE anywhere** (deliberate; dispute/rejection never deletes).
-Smoke: `supabase/tests/rls_smoke_test.sql`, 33 assertions
-(`pnpm db:rls-test`).
+Smoke: `supabase/tests/rls_smoke_test.sql`, 43 assertions
+(`pnpm db:rls-test`, count as of #127).
 
 | Table | Read | Write | Fits class | Smoke |
 | --- | --- | --- | --- | --- |
@@ -128,12 +128,12 @@ Profile-tab card is hidden (`apps/mobile/src/config/app-env.ts`, unit-tested).
 | Gap | What is needed | Class |
 | --- | --- | --- |
 | Local-private storage decision (2.1) | **decided** (#126): owner-private EU rows for alpha; #93/#94 updated; device-only stays later option (#129) | Done |
-| Supabase project region | create alpha project in EU region, document here | **Blocker** |
+| Supabase project region | create alpha project in EU region (preferred `eu-central-1`), document here; full checklist in `docs/development/shared-alpha-supabase.md` (#138) | **Blocker** (runbook ready) |
 | Real auth | **done** (#134 gate + #135 flow): e-mail+password sign-up/sign-in/sign-out, AsyncStorage session persistence, RLS-scoped profile bootstrap; local-stack smoke 9/9 PASS (`apps/mobile/scripts/auth-flow-smoke.ts`). Re-verify against the shared project once it exists | Done (re-check on shared project) |
-| Secrets handling | env-tier separation **done** (#134): `EXPO_PUBLIC_APP_ENV` local / shared-alpha / production, fail-closed, names documented in `.env.example` (placeholders only). Remaining: shared project URL/publishable key distribution for testers; service keys never in repo/app | **Blocker** (distribution) |
-| Migration deploy path | defined way to apply `supabase/migrations/` to the shared project (CLI `db push` from a maintainer machine or CI job with scoped token — decision + doc) | **Blocker** |
-| RLS verification against shared project | run the smoke suite (or an equivalent seeded check) once against the alpha project before invites; local 33/33 is necessary but not sufficient | **Blocker** |
-| Seed/test data concept | shared project starts empty; no demo seed on shared DB; testers create real data — document expectations | Can follow |
+| Secrets handling | env-tier separation **done** (#134); tester config distribution **documented** (#138 runbook §3: private distribution of URL + publishable key, both public-client config; service keys never in repo/app/testers). Executable once the project exists | Done (doc; execute with project) |
+| Migration deploy path | **decided + documented** (#138 runbook §4): manual maintainer deploy via `supabase link` + `db push` after mandatory local validation; `migration list` parity check; no seed on shared DB; CI workflow deliberately later (`workflow_dispatch`, fail-closed) | Done (doc; execute with project) |
+| RLS verification against shared project | plan **documented** (#138 runbook §5): Path A = rolled-back SQL suite via psql (maintainer), Path B = client-side supabase-js smoke → #139; must run before invites; local 43/43 is necessary but not sufficient | **Blocker** (execution; script → #139) |
+| Seed/test data concept | **documented** (#138 runbook §4): shared project starts empty, `seed.sql` stays local-only, testers create real data | Done |
 | RLS smoke gaps (see 3) | **done** (#127): profiles visibility, inbox ownership/resolve, expense soft-delete covered; participation/availability cases follow with their write paths (#131) | Done |
 | Unused/partial tables | inbox resolve + expense soft-delete **done** (#127); `context_members`/`member_availability` read-only until membership flows (#131); `friend_connections` decision → #132 | Mostly done |
 | Backup/key handling | stays #109 (premium, E2E) — explicitly **not** alpha | Not in alpha |
@@ -149,10 +149,17 @@ resolved via #126 — owner-private EU rows):
    in shared builds (#134), e-mail+password flow with session persistence and
    profile bootstrap (#135, local-stack smoke 9/9). Re-verify on the shared
    project.
-3. Secrets/env separation for shared config — env tiers exist since #134;
-   tester config distribution still open.
-4. Migration deploy path.
-5. RLS smoke (or equivalent) green against the shared project.
+3. ~~Secrets/env separation for shared config~~ — env tiers since #134,
+   tester config distribution documented (#138 runbook §3); execution is part
+   of project creation.
+4. ~~Migration deploy path~~ — decided and documented (#138 runbook §4:
+   manual maintainer `db push` first, CI later); execution is part of project
+   creation.
+5. RLS smoke (or equivalent) green against the shared project — plan in
+   #138 runbook §5, client-side script is #139.
+
+Net remaining work: execute the #138 runbook (create the EU project, deploy,
+smoke, distribute config) plus the #139 script.
 
 **Can follow during alpha**: seed/testdata doc, participation/availability
 write paths with the membership flows (#131), friend_connections decision
