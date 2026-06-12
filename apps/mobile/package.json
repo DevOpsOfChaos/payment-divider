@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "tsx": "^4.20.6",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -19,6 +20,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/config/*.test.ts",
     "web": "expo start --web",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

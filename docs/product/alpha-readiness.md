@@ -61,7 +61,10 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
 - Pause/availability evaluation is not applied in the supabase-local Record
   setup (all members preselected).
 - Dev session uses fixed local credentials — meaningless outside the local
-  stack, but must never be reused in any deployed environment.
+  stack, and since #134 hard-blocked outside `EXPO_PUBLIC_APP_ENV=local`
+  (fail-closed guard in `apps/mobile/src/config/app-env.ts`; Profile-tab card
+  hidden, `startDevSession` refuses). Shared builds need real Supabase auth
+  (follow-up issue).
 - DB types are generated and committed (#118, `pnpm db:gen-types`); the
   remaining hand-written part is the column→core-field mapping incl.
   narrowing CHECK-constrained text columns to core unions.
@@ -82,7 +85,9 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
 ## Before any public launch
 
 - Real auth (no fixed dev users), account deletion/export, GDPR documentation.
-- Secrets management and environment separation; never ship dev-session code paths.
+- Secrets management and environment separation; the dev session is already
+  env-gated (#134, `EXPO_PUBLIC_APP_ENV`), but shared builds still need a real
+  sign-in flow and a defined config-distribution path for testers.
 - RLS test suite in CI against an ephemeral stack, not just local runs.
 - Masking/encryption for personal identifiers; notification content review.
 - Wording audit: nothing may imply payment execution — the app stays a ledger.
