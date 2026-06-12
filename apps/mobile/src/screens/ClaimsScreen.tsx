@@ -28,6 +28,25 @@ const LIFECYCLE_LABELS: Record<string, string> = {
   archived: "archiviert",
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Reminder targets: "morgen" from now, snooze one day after the current
+// reminder time (never earlier than tomorrow). Reminders are personal memory
+// aids — nothing is sent to anyone.
+function reminderTomorrow(): string {
+  return new Date(Date.now() + DAY_MS).toISOString();
+}
+
+function reminderSnoozeTarget(currentRemindAt: string): string {
+  return new Date(
+    Math.max(Date.now(), Date.parse(currentRemindAt)) + DAY_MS,
+  ).toISOString();
+}
+
+function formatReminderTime(remindAt: string): string {
+  return `${remindAt.slice(0, 10)} ${remindAt.slice(11, 16)}`;
+}
+
 const COUNTERPARTY_LABELS: Record<CounterpartyKind, string> = {
   app_user: "App-Kontakt",
   invited_person: "Einladung",
@@ -136,6 +155,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
   const groupName = item.groupName;
   const paymentAmount = parseAmount(paymentText);
   const canReact = item.canReact;
+  const reminder = item.reminder;
 
   return (
     <View style={styles.claimCard}>
@@ -227,6 +247,47 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
               </Pressable>
             </View>
           ) : null}
+
+          <Text style={styles.detailTitle}>Erinnerung (nur für dich)</Text>
+          {reminder ? (
+            <>
+              <Text style={styles.detailLine}>
+                {formatReminderTime(reminder.remindAt)}
+                {item.reminderDue ? " · fällig" : ""}
+              </Text>
+              <View style={styles.actionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    void claimsData.snoozeClaimReminder(
+                      claim.id,
+                      reminderSnoozeTarget(reminder.remindAt),
+                    )
+                  }
+                  style={styles.actionButton}
+                >
+                  <Text style={styles.actionButtonText}>später erinnern (+1 Tag)</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void claimsData.disableClaimReminder(claim.id)}
+                  style={styles.actionButtonSecondary}
+                >
+                  <Text style={styles.actionButtonSecondaryText}>nicht mehr erinnern</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : item.lifecycle !== "settled" && item.lifecycle !== "archived" ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void claimsData.setClaimReminder(claim.id, reminderTomorrow())}
+              style={styles.actionButtonSecondary}
+            >
+              <Text style={styles.actionButtonSecondaryText}>morgen erinnern</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.detailLine}>Keine Erinnerung.</Text>
+          )}
 
           <Text style={styles.detailTitle}>Timeline</Text>
           {item.events.map((event) => (

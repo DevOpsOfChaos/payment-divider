@@ -29,9 +29,11 @@ MVP 1A view in `mvp1a-readiness.md` for data-mode questions.
   and written via `supabase-claims.ts`; status actions validated client-side
   (core transition table) and enforced server-side (#106 trigger). Person
   balance overview stays derived in the client; no person-balance table.
-  Claim reminders have schema + RLS but no adapter/UI yet.
+- Claim reminders (#116): own active reminder per claim shown in the claims
+  UI, set/snooze/disable in both data modes via core helpers. Strictly
+  personal metadata (owner-only RLS); nothing is sent, no push.
 - Verified: migrations replay cleanly (`db reset`), `db lint` clean, RLS
-  behavior smoke tests 29/29 PASS (`pnpm db:rls-test`).
+  behavior smoke tests 33/33 PASS (`pnpm db:rls-test`).
 
 ## Setup
 

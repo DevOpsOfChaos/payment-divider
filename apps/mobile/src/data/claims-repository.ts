@@ -3,6 +3,7 @@ import type {
   ClaimEvent,
   ClaimLifecycle,
   ClaimPayment,
+  ClaimReminder,
   Counterparty,
   CounterpartyKind,
   EntityId,
@@ -33,6 +34,12 @@ export interface ClaimListItem {
   canReact: boolean;
   payments: ClaimPayment[];
   events: ClaimEvent[];
+  // The current user's own active reminder for this claim, if any. Reminders
+  // are personal memory aids: the other side never sees them and nothing is
+  // ever sent (no push, no delivery).
+  reminder?: ClaimReminder;
+  // True when the own active reminder is due (remindAt <= now).
+  reminderDue: boolean;
 }
 
 export interface ClaimsOverviewData {
@@ -75,4 +82,10 @@ export interface ClaimsRepository {
   acknowledgeClaim(claimId: EntityId): Promise<WriteResult>;
   disputeClaim(claimId: EntityId): Promise<WriteResult>;
   archiveClaim(claimId: EntityId): Promise<WriteResult>;
+  // Personal reminders (docs/product/reminder-policy-v0.1.md): self-set
+  // metadata only. remindAt is an ISO datetime; snooze must move it later
+  // (core `snoozeReminder` rule), disable keeps the record.
+  setClaimReminder(claimId: EntityId, remindAt: string): Promise<WriteResult>;
+  snoozeClaimReminder(claimId: EntityId, remindAt: string): Promise<WriteResult>;
+  disableClaimReminder(claimId: EntityId): Promise<WriteResult>;
 }
