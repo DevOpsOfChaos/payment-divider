@@ -77,10 +77,10 @@ In `supabase-local` mode the ledger screens (groups, expenses, settlement) read 
 
 ```powershell
 npx supabase db start
-corepack pnpm db:rls-test   # 29 assertions, runs psql inside the local db container
+corepack pnpm db:rls-test   # 30 assertions, runs psql inside the local db container
 ```
 
-Last run 2026-06-12: 29/29 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
+Last run 2026-06-12: 30/30 PASS (Postgres image 17.6.1.134; explicit app-role grants required by newer images are in migration 20260611143000). Includes counterparty visibility: unshared claims stay invisible to a linked counterparty, and counterparty records are owner-only.
 
 ## Continuous integration
 
