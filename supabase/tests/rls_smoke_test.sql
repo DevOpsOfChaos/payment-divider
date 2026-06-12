@@ -244,6 +244,21 @@ values
 select pg_temp.assert(
   (select count(*) from public.claims) = 3,
   'creator A sees all three own claims');
+
+-- Regression (#119): INSERT ... RETURNING must work for the creator. The
+-- adapter creates claims via insert + returning id; the old select policy
+-- (claims self-subquery) could not see the new row in the command snapshot.
+with inserted as (
+  insert into public.claims (creator_user_id, direction, counterparty_id, shared_with_counterparty, amount_minor, currency_code, claim_date, status)
+  values
+    ('00000000-0000-0000-0000-00000000000a',
+     'owed_to_me', '00000000-0000-0000-0000-0000000000b1', false,
+     400, 'EUR', '2026-06-12', 'private_open')
+  returning id
+)
+select pg_temp.assert(
+  (select count(*) from inserted) = 1,
+  'creator A can insert a claim with RETURNING');
 reset role;
 
 -- Linked counterparty B sees only the explicitly shared claim: not the
