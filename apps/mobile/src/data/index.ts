@@ -37,6 +37,9 @@ export {
 } from "../config/data-source";
 
 import { getDataSourceMode as resolveMode } from "../config/data-source";
+import type { ClaimsRepository as ClaimsRepositoryType } from "./claims-repository";
+import { mockClaimsRepository } from "./claims-store";
+import { supabaseClaimsRepository } from "./supabase-claims";
 import { supabaseRepositories } from "./supabase-repositories";
 
 export {
@@ -44,8 +47,23 @@ export {
   getSupabaseSessionUserId,
   reloadSupabaseData,
 } from "./supabase-repositories";
+export { reloadSupabaseClaims } from "./supabase-claims";
+export type {
+  AddClaimInput,
+  ClaimGroupOption,
+  ClaimListItem,
+  ClaimsOverviewData,
+  ClaimsRepository,
+  NewCounterpartyInput,
+} from "./claims-repository";
 
-// supabase-local is read-only for now (writes land in a follow-up issue) and
-// falls back to mock data with a dev hint while unconfigured or loading.
+// supabase-local falls back to mock data with a dev hint while unconfigured
+// or loading.
 export const appRepositories: AppRepositories =
   resolveMode() === "supabase-local" ? supabaseRepositories : mockRepositories;
+
+// Claims (private ledger notes) behind the same mode switch. The supabase
+// adapter reads/writes claims, counterparties and claim payments; the person
+// balance overview stays derived in the client via core.
+export const claimsData: ClaimsRepositoryType =
+  resolveMode() === "supabase-local" ? supabaseClaimsRepository : mockClaimsRepository;

@@ -11,13 +11,10 @@ import {
   summarizeClaimsByPerson,
   type Claim,
   type ClaimEvent,
-  type ClaimLifecycle,
   type ClaimPayment,
   type Counterparty,
-  type CounterpartyKind,
   type EntityId,
   type PersonBalanceOverview,
-  type PersonClaimSummary,
 } from "@payment-divider/core";
 
 import {
@@ -27,8 +24,16 @@ import {
   MOCK_COUNTERPARTIES,
 } from "../mock-data/claims";
 import { getBalanceInput } from "../mock-data/balance-derived";
-import { MOCK_CURRENT_USER_ID } from "../mock-data/ledger";
+import { MOCK_CURRENT_USER_ID, MOCK_GROUPS, MOCK_USERS } from "../mock-data/ledger";
 import { notifyExternalDataChanged } from "./local-ledger";
+import type {
+  AddClaimInput,
+  ClaimListItem,
+  ClaimsOverviewData,
+  ClaimsRepository,
+  NewCounterpartyInput,
+} from "./claims-repository";
+import type { WriteResult } from "./repositories";
 
 // Session-only claims store for the local demo. Claims reference reusable
 // counterparty records; free-text persons are created once and reused.
@@ -50,20 +55,11 @@ function ownCounterparties(): Counterparty[] {
   );
 }
 
-export function getCounterparties(): Counterparty[] {
-  return ownCounterparties();
-}
-
-export interface AddCounterpartyInput {
-  kind: Exclude<CounterpartyKind, "app_user">;
-  displayName: string;
-}
-
 // Creates a reusable person record. If the owner already has a counterparty
 // with the same normalized name, that one is reused instead of creating a
 // duplicate (creation-time reuse only — merging existing records stays a
 // future, user-confirmed flow).
-export function getOrCreateCounterparty(input: AddCounterpartyInput): Counterparty {
+function getOrCreateCounterparty(input: NewCounterpartyInput): Counterparty {
   const normalized = normalizeCounterpartyName(input.displayName);
   const existing = ownCounterparties().find(
     (counterparty) => counterparty.normalizedName === normalized,
@@ -104,21 +100,15 @@ function updateClaim(claimId: EntityId, patch: Partial<Claim>): void {
   );
 }
 
-export interface AddClaimInput {
-  direction: Claim["direction"];
-  counterpartyId: EntityId;
-  amount: number;
-  purpose?: string;
-  dueDate?: string;
-  groupId?: EntityId;
-}
-
-export function addClaim(input: AddClaimInput): void {
-  const counterparty = counterparties.find(
-    (candidate) => candidate.id === input.counterpartyId,
-  );
+function addClaim(input: AddClaimInput): WriteResult {
+  let counterparty = input.counterpartyId
+    ? counterparties.find((candidate) => candidate.id === input.counterpartyId)
+    : undefined;
+  if (!counterparty && input.newCounterparty) {
+    counterparty = getOrCreateCounterparty(input.newCounterparty);
+  }
   if (!counterparty) {
-    return;
+    return { ok: false, message: "Person nicht gefunden." };
   }
   const linked = counterparty.kind === "app_user";
   const id = `claim-${Date.now()}-${claims.length}`;
@@ -145,12 +135,13 @@ export function addClaim(input: AddClaimInput): void {
   ];
   appendEvent(id, "claim_created");
   notifyExternalDataChanged();
+  return { ok: true, message: "Forderung lokal gespeichert." };
 }
 
-export function recordClaimPayment(claimId: EntityId, amount: number): void {
+function recordClaimPayment(claimId: EntityId, amount: number): WriteResult {
   const claim = claims.find((candidate) => candidate.id === claimId);
   if (!claim || amount <= 0) {
-    return;
+    return { ok: false, message: "Teilzahlung nicht möglich." };
   }
   payments = [
     ...payments,
@@ -174,18 +165,19 @@ export function recordClaimPayment(claimId: EntityId, amount: number): void {
   ];
   appendEvent(claimId, "payment_recorded");
   notifyExternalDataChanged();
+  return { ok: true, message: "Teilzahlung erfasst." };
 }
 
-// Validated status change: silently ignores transitions the dispute workflow
-// forbids (e.g. disputing a private claim or reviving an archived one).
+// Validated status change: rejects transitions the dispute workflow forbids
+// (e.g. disputing a private claim or reviving an archived one).
 function applyClaimTransition(
   claimId: EntityId,
   to: Claim["status"],
   eventType: ClaimEvent["eventType"],
-): void {
+): WriteResult {
   const claim = claims.find((candidate) => candidate.id === claimId);
   if (!claim || !canTransitionClaimStatus(claim.status, to)) {
-    return;
+    return { ok: false, message: "Statuswechsel nicht erlaubt." };
   }
   updateClaim(claimId, {
     status: to,
@@ -193,50 +185,39 @@ function applyClaimTransition(
   });
   appendEvent(claimId, eventType);
   notifyExternalDataChanged();
+  return { ok: true, message: "Status aktualisiert." };
 }
 
-export function acknowledgeClaim(claimId: EntityId): void {
-  applyClaimTransition(claimId, "debtor_acknowledged", "claim_acknowledged");
-}
-
-export function disputeClaim(claimId: EntityId): void {
-  applyClaimTransition(claimId, "disputed", "claim_disputed");
-}
-
-export function archiveClaim(claimId: EntityId): void {
-  applyClaimTransition(claimId, "archived", "claim_archived");
-}
-
-export interface ClaimListItem {
-  claim: Claim;
-  counterparty?: Counterparty;
-  remaining: number;
-  lifecycle: ClaimLifecycle;
-  linked: boolean;
-  // True when the current user is the linked counterparty, not the creator.
-  incoming: boolean;
-  payments: ClaimPayment[];
-  events: ClaimEvent[];
-}
-
-export interface ClaimsOverviewData {
-  summaries: PersonClaimSummary[];
-  openClaims: ClaimListItem[];
-  closedClaims: ClaimListItem[];
+function groupName(groupId: EntityId | undefined): string | undefined {
+  if (!groupId) {
+    return undefined;
+  }
+  return MOCK_GROUPS.find((group) => group.id === groupId)?.name ?? groupId;
 }
 
 function toListItem(claim: Claim): ClaimListItem {
   const claimPayments = payments.filter((payment) => payment.claimId === claim.id);
   const allCounterparties = [...counterparties];
+  const counterparty = counterparties.find(
+    (candidate) => candidate.id === claim.counterpartyId,
+  );
+  const incoming = claim.creatorUserId !== MOCK_CURRENT_USER_ID;
   return {
     claim,
-    counterparty: counterparties.find(
-      (counterparty) => counterparty.id === claim.counterpartyId,
-    ),
+    counterparty,
+    counterpartyName: incoming
+      ? MOCK_USERS.find((user) => user.id === claim.creatorUserId)?.displayName ??
+        claim.creatorUserId
+      : counterparty?.displayName ?? claim.counterpartyId,
+    groupName: groupName(claim.groupId),
     remaining: getClaimRemainingAmount(claim, claimPayments, allCounterparties),
     lifecycle: deriveClaimLifecycle(claim, claimPayments, allCounterparties),
     linked: isLinkedClaim(claim, allCounterparties),
-    incoming: claim.creatorUserId !== MOCK_CURRENT_USER_ID,
+    incoming,
+    canReact:
+      incoming &&
+      counterparty?.linkedUserId === MOCK_CURRENT_USER_ID &&
+      (claim.status === "linked_open" || claim.status === "disputed"),
     payments: claimPayments,
     events: events
       .filter((event) => event.claimId === claim.id)
@@ -272,20 +253,27 @@ function claimsFromCurrentUserPerspective(): Claim[] {
 // pairwise group balances per counterparty. Gross positions stay visible,
 // net is only a summary; closed positions are returned separately as history.
 // Recurring costs are a prepared source type without a producer yet.
-export function getPersonBalanceOverview(): PersonBalanceOverview[] {
+function getPersonBalanceOverview(): PersonBalanceOverview[] {
   const allCounterparties = [...counterparties];
   const positions = [
-    ...claimsToPersonPositions(claimsFromCurrentUserPerspective(), [...payments], allCounterparties),
+    ...claimsToPersonPositions(
+      claimsFromCurrentUserPerspective(),
+      [...payments],
+      allCounterparties,
+    ),
     ...groupBalancesToPersonPositions({
       ...getBalanceInput(),
       currentUserId: MOCK_CURRENT_USER_ID,
       counterparties: ownCounterparties(),
-    }),
+    }).map((position) => ({
+      ...position,
+      label: groupName(position.sourceId),
+    })),
   ];
   return buildPersonBalanceOverview({ positions, counterparties: allCounterparties });
 }
 
-export function getClaimsOverview(): ClaimsOverviewData {
+function getClaimsOverview(): ClaimsOverviewData {
   const allPayments = [...payments];
   const allCounterparties = [...counterparties];
   const items = claims.map(toListItem);
@@ -301,3 +289,20 @@ export function getClaimsOverview(): ClaimsOverviewData {
     ),
   };
 }
+
+export const mockClaimsRepository: ClaimsRepository = {
+  getCounterparties: () => ownCounterparties(),
+  getClaimGroupOptions: () =>
+    MOCK_GROUPS.map((group) => ({ id: group.id, name: group.name })),
+  getClaimsOverview,
+  getPersonBalanceOverview,
+  getClaimsStatusHint: () => undefined,
+  addClaim: async (input) => addClaim(input),
+  recordClaimPayment: async (claimId, amount) => recordClaimPayment(claimId, amount),
+  acknowledgeClaim: async (claimId) =>
+    applyClaimTransition(claimId, "debtor_acknowledged", "claim_acknowledged"),
+  disputeClaim: async (claimId) =>
+    applyClaimTransition(claimId, "disputed", "claim_disputed"),
+  archiveClaim: async (claimId) =>
+    applyClaimTransition(claimId, "archived", "claim_archived"),
+};

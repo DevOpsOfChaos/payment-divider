@@ -16,6 +16,10 @@
 --      CLAIM_STATUS_TRANSITIONS in core): disputed never jumps to settled or
 --      creditor_confirmed, unshared claims cannot be disputed, archived is
 --      terminal, and a counterparty can never delete a claim.
+--   8. claim write paths used by the supabase-local adapter: the counterparty
+--      may record a payment only as themselves, claim events only carry the
+--      acting user, and reminders stay personal (owner-only visibility,
+--      never insertable for someone else).
 
 begin;
 
@@ -447,6 +451,86 @@ begin
   end;
 end;
 $$;
+reset role;
+
+-- ------------------------------------ 8. claim write paths (adapter, #105) ---
+-- Claim a3 is shared with linked counterparty B (status debtor_acknowledged).
+
+-- Counterparty B may record a payment as themselves (pending confirmation).
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+insert into public.claim_payments (id, claim_id, amount_minor, currency_code, payment_date, recorded_by, confirmation_status)
+values
+  ('00000000-0000-0000-0000-0000000000a6',
+   '00000000-0000-0000-0000-0000000000a3',
+   300, 'EUR', '2026-06-12', '00000000-0000-0000-0000-00000000000b',
+   'pending_confirmation');
+select pg_temp.assert(
+  exists (select 1 from public.claim_payments
+          where id = '00000000-0000-0000-0000-0000000000a6'),
+  'counterparty B may record a payment on the shared claim');
+
+-- B may not record a payment in someone else''s name.
+do $$
+begin
+  begin
+    insert into public.claim_payments (claim_id, amount_minor, currency_code, payment_date, recorded_by)
+    values
+      ('00000000-0000-0000-0000-0000000000a3',
+       100, 'EUR', '2026-06-12', '00000000-0000-0000-0000-00000000000a');
+    raise exception 'FAIL: counterparty could record a payment as the creator';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: payments can only be recorded as oneself (42501)';
+  end;
+end;
+$$;
+
+-- Claim events carry only the acting user.
+insert into public.claim_events (claim_id, actor_user_id, event_type)
+values
+  ('00000000-0000-0000-0000-0000000000a3',
+   '00000000-0000-0000-0000-00000000000b', 'payment_recorded');
+do $$
+begin
+  begin
+    insert into public.claim_events (claim_id, actor_user_id, event_type)
+    values
+      ('00000000-0000-0000-0000-0000000000a3',
+       '00000000-0000-0000-0000-00000000000a', 'payment_recorded');
+    raise exception 'FAIL: counterparty could write an event as the creator';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: claim events can only carry the acting user (42501)';
+  end;
+end;
+$$;
+
+-- Reminders are personal memory aids: each participant sets their own, and
+-- nobody can see or create reminders for the other side.
+insert into public.claim_reminders (claim_id, user_id, remind_at)
+values
+  ('00000000-0000-0000-0000-0000000000a3',
+   '00000000-0000-0000-0000-00000000000b', '2026-07-01T09:00:00Z');
+do $$
+begin
+  begin
+    insert into public.claim_reminders (claim_id, user_id, remind_at)
+    values
+      ('00000000-0000-0000-0000-0000000000a3',
+       '00000000-0000-0000-0000-00000000000a', '2026-07-01T09:00:00Z');
+    raise exception 'FAIL: counterparty could create a reminder for the creator';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: reminders cannot be created for someone else (42501)';
+  end;
+end;
+$$;
+reset role;
+
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+select pg_temp.assert(
+  (select count(*) from public.claim_reminders) = 0,
+  'creator A cannot see counterparty B''s reminder');
 reset role;
 
 rollback;

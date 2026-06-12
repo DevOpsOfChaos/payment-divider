@@ -285,6 +285,28 @@ export function getSupabaseSessionUserId(): EntityId | undefined {
   return currentUserId;
 }
 
+// Snapshot of the ledger data for derived views (person balance overview).
+// Triggers the lazy load and returns undefined while it is still pending.
+export interface SupabaseLedgerSnapshot {
+  expenses: Expense[];
+  expenseShares: ExpenseShare[];
+  paymentActions: PaymentAction[];
+  groups: Group[];
+}
+
+export function getSupabaseLedgerData(): SupabaseLedgerSnapshot | undefined {
+  const data = ensureLoaded();
+  if (!data) {
+    return undefined;
+  }
+  return {
+    expenses: data.expenses,
+    expenseShares: data.shares,
+    paymentActions: data.actions,
+    groups: data.groups,
+  };
+}
+
 export function getSupabaseDataStatusHint(): string {
   switch (loadState) {
     case "ready":
