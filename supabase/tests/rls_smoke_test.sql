@@ -19,7 +19,7 @@
 --   8. claim write paths used by the supabase-local adapter: the counterparty
 --      may record a payment only as themselves, claim events only carry the
 --      acting user, and reminders stay personal (owner-only visibility,
---      never insertable for someone else).
+--      never insertable for someone else; snooze/disable only on own rows).
 
 begin;
 
@@ -546,6 +546,42 @@ select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
 select pg_temp.assert(
   (select count(*) from public.claim_reminders) = 0,
   'creator A cannot see counterparty B''s reminder');
+
+-- A cannot snooze or disable B's reminder either: RLS yields zero rows.
+with updated as (
+  update public.claim_reminders
+  set remind_at = '2026-08-01T09:00:00Z'
+  where user_id = '00000000-0000-0000-0000-00000000000b'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 0,
+  'creator A cannot update counterparty B''s reminder');
+reset role;
+
+-- B may snooze (move later) and disable their own reminder.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+with updated as (
+  update public.claim_reminders
+  set remind_at = '2026-07-02T09:00:00Z'
+  where claim_id = '00000000-0000-0000-0000-0000000000a3'
+    and user_id = '00000000-0000-0000-0000-00000000000b'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 1,
+  'counterparty B may snooze their own reminder');
+
+with updated as (
+  update public.claim_reminders
+  set disabled_at = '2026-07-02T10:00:00Z'
+  where claim_id = '00000000-0000-0000-0000-0000000000a3'
+    and user_id = '00000000-0000-0000-0000-00000000000b'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from updated) = 1,
+  'counterparty B may disable their own reminder');
 reset role;
 
 rollback;

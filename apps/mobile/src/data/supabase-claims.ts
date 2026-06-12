@@ -3,13 +3,16 @@ import {
   claimsToPersonPositions,
   deriveClaimLifecycle,
   getClaimRemainingAmount,
+  getDueReminders,
   groupBalancesToPersonPositions,
   isClaimClosed,
   isLinkedClaim,
+  isReminderActive,
   summarizeClaimsByPerson,
   type Claim,
   type ClaimEvent,
   type ClaimPayment,
+  type ClaimReminder,
   type Counterparty,
   type EntityId,
   type PersonBalanceOverview,
@@ -19,8 +22,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../services/supabase-client";
 import {
   createClaim,
+  disableClaimReminderRow,
   getOrCreateCounterpartyId,
+  insertClaimReminder,
   recordClaimPayment,
+  snoozeClaimReminderRow,
   transitionClaim,
 } from "../services/supabase-claim-writes";
 import { mockClaimsRepository } from "./claims-store";
@@ -47,6 +53,8 @@ interface ClaimsRemoteData {
   claims: Claim[];
   payments: ClaimPayment[];
   events: ClaimEvent[];
+  // RLS already restricts these to the current user's own reminders.
+  reminders: ClaimReminder[];
   profileNames: Map<EntityId, string>;
 }
 
@@ -111,6 +119,18 @@ function mapClaimPayment(row: Row): ClaimPayment {
   };
 }
 
+function mapClaimReminder(row: Row): ClaimReminder {
+  return {
+    id: row.id,
+    claimId: row.claim_id,
+    userId: row.user_id,
+    remindAt: row.remind_at,
+    note: row.note ?? undefined,
+    createdAt: row.created_at,
+    disabledAt: row.disabled_at ?? undefined,
+  };
+}
+
 function mapClaimEvent(row: Row): ClaimEvent {
   return {
     id: row.id,
@@ -134,19 +154,22 @@ async function loadClaimsData(client: SupabaseClient): Promise<void> {
   const session = await client.auth.getSession();
   currentUserId = session.data.session?.user.id;
 
-  const [counterparties, claims, payments, events, profiles] = await Promise.all([
-    selectAll(client, "counterparties"),
-    selectAll(client, "claims"),
-    selectAll(client, "claim_payments"),
-    selectAll(client, "claim_events"),
-    selectAll(client, "profiles"),
-  ]);
+  const [counterparties, claims, payments, events, reminders, profiles] =
+    await Promise.all([
+      selectAll(client, "counterparties"),
+      selectAll(client, "claims"),
+      selectAll(client, "claim_payments"),
+      selectAll(client, "claim_events"),
+      selectAll(client, "claim_reminders"),
+      selectAll(client, "profiles"),
+    ]);
 
   remote = {
     counterparties: counterparties.map(mapCounterparty),
     claims: claims.map(mapClaim),
     payments: payments.map(mapClaimPayment),
     events: events.map(mapClaimEvent),
+    reminders: reminders.map(mapClaimReminder),
     profileNames: new Map(
       profiles.map((row) => [row.id as EntityId, row.display_name as string]),
     ),
@@ -244,6 +267,20 @@ function groupNameFromLedger(groupId: EntityId | undefined): string | undefined 
   );
 }
 
+// Own active reminder for one claim. RLS already scopes the loaded rows to
+// the current user; the user filter stays as defense in depth.
+function activeOwnReminder(
+  data: ClaimsRemoteData,
+  claimId: EntityId,
+): ClaimReminder | undefined {
+  return data.reminders.find(
+    (reminder) =>
+      reminder.claimId === claimId &&
+      reminder.userId === currentUserId &&
+      isReminderActive(reminder),
+  );
+}
+
 function toListItem(data: ClaimsRemoteData, claim: Claim): ClaimListItem {
   const allCounterparties = effectiveCounterparties(data);
   const claimPayments = data.payments.filter((payment) => payment.claimId === claim.id);
@@ -251,6 +288,7 @@ function toListItem(data: ClaimsRemoteData, claim: Claim): ClaimListItem {
     (candidate) => candidate.id === claim.counterpartyId,
   );
   const incoming = claim.creatorUserId !== currentUserId;
+  const reminder = activeOwnReminder(data, claim.id);
   return {
     claim,
     counterparty,
@@ -267,6 +305,11 @@ function toListItem(data: ClaimsRemoteData, claim: Claim): ClaimListItem {
     events: data.events
       .filter((event) => event.claimId === claim.id)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    reminder,
+    reminderDue:
+      reminder !== undefined &&
+      currentUserId !== undefined &&
+      getDueReminders([reminder], currentUserId, new Date().toISOString()).length > 0,
   };
 }
 
@@ -451,5 +494,31 @@ export const supabaseClaimsRepository: ClaimsRepository = {
         return { ok: false, message: "Forderung nicht gefunden." };
       }
       return transitionClaim(client, userId, claim, "archived", "claim_archived");
+    }),
+  setClaimReminder: (claimId, remindAt) =>
+    withSession(async (client, userId) => {
+      if (!remote) {
+        return { ok: false, message: "Forderungen noch nicht geladen." };
+      }
+      if (activeOwnReminder(remote, claimId)) {
+        return { ok: false, message: "Es gibt schon eine aktive Erinnerung." };
+      }
+      return insertClaimReminder(client, userId, claimId, remindAt);
+    }),
+  snoozeClaimReminder: (claimId, remindAt) =>
+    withSession(async (client) => {
+      const reminder = remote ? activeOwnReminder(remote, claimId) : undefined;
+      if (!reminder) {
+        return { ok: false, message: "Keine aktive Erinnerung." };
+      }
+      return snoozeClaimReminderRow(client, reminder, remindAt);
+    }),
+  disableClaimReminder: (claimId) =>
+    withSession(async (client, userId) => {
+      const reminder = remote ? activeOwnReminder(remote, claimId) : undefined;
+      if (!reminder) {
+        return { ok: false, message: "Keine aktive Erinnerung." };
+      }
+      return disableClaimReminderRow(client, userId, reminder, new Date().toISOString());
     }),
 };

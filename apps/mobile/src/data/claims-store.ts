@@ -3,15 +3,20 @@ import {
   canTransitionClaimStatus,
   claimsToPersonPositions,
   deriveClaimLifecycle,
+  disableReminder,
   getClaimRemainingAmount,
+  getDueReminders,
   groupBalancesToPersonPositions,
   isClaimClosed,
   isLinkedClaim,
+  isReminderActive,
   normalizeCounterpartyName,
+  snoozeReminder,
   summarizeClaimsByPerson,
   type Claim,
   type ClaimEvent,
   type ClaimPayment,
+  type ClaimReminder,
   type Counterparty,
   type EntityId,
   type PersonBalanceOverview,
@@ -43,6 +48,9 @@ let counterparties: readonly Counterparty[] = MOCK_COUNTERPARTIES;
 let claims: readonly Claim[] = MOCK_CLAIMS;
 let payments: readonly ClaimPayment[] = MOCK_CLAIM_PAYMENTS;
 let events: readonly ClaimEvent[] = MOCK_CLAIM_EVENTS;
+// Personal reminders (session-only, start empty): self-set memory aids that
+// are never sent anywhere and never visible to the other side.
+let reminders: readonly ClaimReminder[] = [];
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -188,6 +196,70 @@ function applyClaimTransition(
   return { ok: true, message: "Status aktualisiert." };
 }
 
+function activeOwnReminder(claimId: EntityId): ClaimReminder | undefined {
+  return reminders.find(
+    (reminder) =>
+      reminder.claimId === claimId &&
+      reminder.userId === MOCK_CURRENT_USER_ID &&
+      isReminderActive(reminder),
+  );
+}
+
+function setClaimReminder(claimId: EntityId, remindAt: string): WriteResult {
+  const claim = claims.find((candidate) => candidate.id === claimId);
+  if (!claim) {
+    return { ok: false, message: "Forderung nicht gefunden." };
+  }
+  if (activeOwnReminder(claimId)) {
+    return { ok: false, message: "Es gibt schon eine aktive Erinnerung." };
+  }
+  reminders = [
+    ...reminders,
+    {
+      id: `claim-reminder-${Date.now()}-${reminders.length}`,
+      claimId,
+      userId: MOCK_CURRENT_USER_ID,
+      remindAt,
+      createdAt: nowIso(),
+    },
+  ];
+  appendEvent(claimId, "reminder_set");
+  notifyExternalDataChanged();
+  return { ok: true, message: "Erinnerung gesetzt (nur für dich)." };
+}
+
+function snoozeClaimReminder(claimId: EntityId, remindAt: string): WriteResult {
+  const reminder = activeOwnReminder(claimId);
+  if (!reminder) {
+    return { ok: false, message: "Keine aktive Erinnerung." };
+  }
+  let snoozed: ClaimReminder;
+  try {
+    snoozed = snoozeReminder(reminder, remindAt);
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+  reminders = reminders.map((candidate) =>
+    candidate.id === reminder.id ? snoozed : candidate,
+  );
+  notifyExternalDataChanged();
+  return { ok: true, message: "Erinnerung verschoben." };
+}
+
+function disableClaimReminder(claimId: EntityId): WriteResult {
+  const reminder = activeOwnReminder(claimId);
+  if (!reminder) {
+    return { ok: false, message: "Keine aktive Erinnerung." };
+  }
+  const disabled = disableReminder(reminder, nowIso());
+  reminders = reminders.map((candidate) =>
+    candidate.id === reminder.id ? disabled : candidate,
+  );
+  appendEvent(claimId, "reminder_cleared");
+  notifyExternalDataChanged();
+  return { ok: true, message: "Erinnerung deaktiviert." };
+}
+
 function groupName(groupId: EntityId | undefined): string | undefined {
   if (!groupId) {
     return undefined;
@@ -202,6 +274,7 @@ function toListItem(claim: Claim): ClaimListItem {
     (candidate) => candidate.id === claim.counterpartyId,
   );
   const incoming = claim.creatorUserId !== MOCK_CURRENT_USER_ID;
+  const reminder = activeOwnReminder(claim.id);
   return {
     claim,
     counterparty,
@@ -222,6 +295,10 @@ function toListItem(claim: Claim): ClaimListItem {
     events: events
       .filter((event) => event.claimId === claim.id)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    reminder,
+    reminderDue: reminder
+      ? getDueReminders([reminder], MOCK_CURRENT_USER_ID, nowIso()).length > 0
+      : false,
   };
 }
 
@@ -305,4 +382,8 @@ export const mockClaimsRepository: ClaimsRepository = {
     applyClaimTransition(claimId, "disputed", "claim_disputed"),
   archiveClaim: async (claimId) =>
     applyClaimTransition(claimId, "archived", "claim_archived"),
+  setClaimReminder: async (claimId, remindAt) => setClaimReminder(claimId, remindAt),
+  snoozeClaimReminder: async (claimId, remindAt) =>
+    snoozeClaimReminder(claimId, remindAt),
+  disableClaimReminder: async (claimId) => disableClaimReminder(claimId),
 };

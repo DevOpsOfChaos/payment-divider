@@ -1,8 +1,10 @@
 import {
   canTransitionClaimStatus,
   normalizeCounterpartyName,
+  snoozeReminder,
   type Claim,
   type ClaimEvent,
+  type ClaimReminder,
   type ClaimStatus,
   type EntityId,
 } from "@payment-divider/core";
@@ -160,6 +162,84 @@ export async function recordClaimPayment(
     message: eventError
       ? `Teilzahlung gespeichert (Timeline übersprungen: ${eventError}).`
       : "Teilzahlung lokal in Supabase gespeichert.",
+  };
+}
+
+// Personal reminder rows: self-set metadata only. RLS keeps them owner-only
+// (insert/select/update with user_id = auth.uid()); nothing here ever sends
+// anything to the other side.
+
+export async function insertClaimReminder(
+  client: SupabaseClient,
+  userId: string,
+  claimId: EntityId,
+  remindAt: string,
+): Promise<WriteResult> {
+  const { error } = await client.from("claim_reminders").insert({
+    claim_id: claimId,
+    user_id: userId,
+    remind_at: remindAt,
+  });
+  if (error) {
+    return { ok: false, message: `Erinnerung fehlgeschlagen: ${error.message}` };
+  }
+  const eventError = await appendClaimEvent(client, userId, claimId, "reminder_set");
+  return {
+    ok: true,
+    message: eventError
+      ? `Erinnerung gesetzt (Timeline übersprungen: ${eventError}).`
+      : "Erinnerung gesetzt (nur für dich).",
+  };
+}
+
+// Snooze must move the reminder later — validated via the core helper before
+// the row update, so the adapter and the local-demo store reject the same
+// inputs.
+export async function snoozeClaimReminderRow(
+  client: SupabaseClient,
+  reminder: ClaimReminder,
+  remindAt: string,
+): Promise<WriteResult> {
+  let snoozed: ClaimReminder;
+  try {
+    snoozed = snoozeReminder(reminder, remindAt);
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+  const { error } = await client
+    .from("claim_reminders")
+    .update({ remind_at: snoozed.remindAt, disabled_at: null })
+    .eq("id", reminder.id);
+  if (error) {
+    return { ok: false, message: `Verschieben fehlgeschlagen: ${error.message}` };
+  }
+  return { ok: true, message: "Erinnerung verschoben." };
+}
+
+export async function disableClaimReminderRow(
+  client: SupabaseClient,
+  userId: string,
+  reminder: ClaimReminder,
+  disabledAt: string,
+): Promise<WriteResult> {
+  const { error } = await client
+    .from("claim_reminders")
+    .update({ disabled_at: disabledAt })
+    .eq("id", reminder.id);
+  if (error) {
+    return { ok: false, message: `Deaktivieren fehlgeschlagen: ${error.message}` };
+  }
+  const eventError = await appendClaimEvent(
+    client,
+    userId,
+    reminder.claimId,
+    "reminder_cleared",
+  );
+  return {
+    ok: true,
+    message: eventError
+      ? `Erinnerung deaktiviert (Timeline übersprungen: ${eventError}).`
+      : "Erinnerung deaktiviert.",
   };
 }
 
