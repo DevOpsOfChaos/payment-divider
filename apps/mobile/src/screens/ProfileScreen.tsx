@@ -9,6 +9,7 @@ import {
   getSupabaseSessionUserId,
   useLedgerVersion,
 } from "../data";
+import { getDevSessionBlockedHint, isDevSessionAllowed } from "../config/app-env";
 import { endDevSession, startDevSession } from "../services/dev-session";
 import type {
   PaymentControlMock,
@@ -122,7 +123,16 @@ export function ProfileScreen() {
       <Text style={styles.screenTitle}>{PROFILE.title}</Text>
       <Text style={styles.screenPurpose}>{PROFILE.subtitle}</Text>
 
-      {isSupabaseLocal ? <DevSessionCard /> : null}
+      {isSupabaseLocal ? (
+        isDevSessionAllowed() ? (
+          <DevSessionCard />
+        ) : (
+          <View style={styles.subCard}>
+            <Text style={styles.subCardTitle}>Anmeldung</Text>
+            <Text style={styles.subCardDetail}>{getDevSessionBlockedHint()}</Text>
+          </View>
+        )
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Identität</Text>

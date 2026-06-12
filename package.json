@@ -16,7 +16,7 @@
     "db:rls-test": "node scripts/run-rls-smoke-tests.mjs",
     "db:transition-parity": "tsx scripts/check-claim-transition-parity.ts",
     "lint": "node -e \"console.log('Minimal lint placeholder: running package-level checks.')\" && corepack pnpm -r --if-present lint",
-    "test": "corepack pnpm --filter @payment-divider/core test && corepack pnpm db:transition-parity",
+    "test": "corepack pnpm --filter @payment-divider/core test && corepack pnpm --filter @payment-divider/mobile test && corepack pnpm db:transition-parity",
     "typecheck": "corepack pnpm -r --if-present typecheck"
   }
 }

@@ -118,9 +118,10 @@ Smoke: `supabase/tests/rls_smoke_test.sql`, 33 assertions
 Dev-session special logic: none in SQL — the dev session
 (`apps/mobile/src/services/dev-session.ts`) is a fixed local test user that
 signs up through normal auth and passes the normal policies. Nothing to
-remove from the database for alpha; the **client** code path (fixed
-credentials, Profile-tab button) must be disabled/removed for any shared
-deployment.
+remove from the database for alpha; the **client** code path is env-gated
+since #134: `EXPO_PUBLIC_APP_ENV` must be exactly `local` (fail-closed,
+unknown values count as production) or `startDevSession` refuses and the
+Profile-tab card is hidden (`apps/mobile/src/config/app-env.ts`, unit-tested).
 
 ## 4. Alpha gap list
 
@@ -128,8 +129,8 @@ deployment.
 | --- | --- | --- |
 | Local-private storage decision (2.1) | **decided** (#126): owner-private EU rows for alpha; #93/#94 updated; device-only stays later option (#129) | Done |
 | Supabase project region | create alpha project in EU region, document here | **Blocker** |
-| Real auth | replace dev session: real sign-up/sign-in (e-mail+password or magic link), remove fixed credentials path from shared builds | **Blocker** |
-| Secrets handling | env separation: local `.env` stays gitignored; shared project URL/publishable key distribution for testers; service keys never in repo/app | **Blocker** |
+| Real auth | gate half **done** (#134): dev session hard-blocked outside `EXPO_PUBLIC_APP_ENV=local`. Remaining: real sign-up/sign-in flow for testers → #135 | **Blocker** (#135) |
+| Secrets handling | env-tier separation **done** (#134): `EXPO_PUBLIC_APP_ENV` local / shared-alpha / production, fail-closed, names documented in `.env.example` (placeholders only). Remaining: shared project URL/publishable key distribution for testers; service keys never in repo/app | **Blocker** (distribution) |
 | Migration deploy path | defined way to apply `supabase/migrations/` to the shared project (CLI `db push` from a maintainer machine or CI job with scoped token — decision + doc) | **Blocker** |
 | RLS verification against shared project | run the smoke suite (or an equivalent seeded check) once against the alpha project before invites; local 33/33 is necessary but not sufficient | **Blocker** |
 | Seed/test data concept | shared project starts empty; no demo seed on shared DB; testers create real data — document expectations | Can follow |
@@ -144,8 +145,10 @@ deployment.
 resolved via #126 — owner-private EU rows):
 
 1. EU region confirmed at project creation.
-2. Real auth replacing the dev session.
-3. Secrets/env separation for shared config.
+2. Real auth replacing the dev session — the dev session is hard-blocked in
+   shared builds since #134; the sign-in flow itself is #135.
+3. Secrets/env separation for shared config — env tiers exist since #134;
+   tester config distribution still open.
 4. Migration deploy path.
 5. RLS smoke (or equivalent) green against the shared project.
 

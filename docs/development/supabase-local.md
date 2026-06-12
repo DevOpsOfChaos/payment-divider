@@ -65,6 +65,18 @@ corepack pnpm db:boundary-check
 
 It runs on plain Node, needs no Docker and no Supabase CLI, and fails when forbidden terms appear outside clearly marked exclusion comments.
 
+## Environment tiers
+
+The mobile app distinguishes three environment tiers via `EXPO_PUBLIC_APP_ENV` (#134), independent of the data-source mode:
+
+| Tier | `EXPO_PUBLIC_APP_ENV` | Auth | Status |
+| --- | --- | --- | --- |
+| Local dev | `local` (or unset) | dev session allowed (fixed local test user, local stack only) | this document |
+| Shared alpha | `shared-alpha` | dev session **hard-blocked**; requires real Supabase auth (sign-up/sign-in, follow-up issue) | no shared project exists yet |
+| Production | `production` (later) | real auth only, same hard block | not started |
+
+The gate is fail-closed: any value other than exactly `local` (including typos) is treated as `production`, so `startDevSession` refuses to run and the Profile tab hides the dev-session card (`apps/mobile/src/config/app-env.ts`). Env variable names are documented in `.env.example` with placeholders only — never real values, never service/secret keys.
+
 ## Mobile data modes
 
 The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PUBLIC_DATA_SOURCE=supabase-local` in `apps/mobile/.env` (template: `.env.example` at the repo root) selects the local-Supabase mode, configured via `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLIC_KEY` — both printed by `supabase start`. Missing configuration falls back to local-demo with a dev hint instead of crashing. Only `.env.example` may be committed; the boundary check enforces this and rejects secret-like values in it.

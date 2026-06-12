@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabase-client";
+import { getDevSessionBlockedHint, isDevSessionAllowed } from "../config/app-env";
 import { reloadSupabaseClaims } from "../data/supabase-claims";
 import { reloadSupabaseData } from "../data/supabase-repositories";
 
@@ -7,6 +8,10 @@ import { reloadSupabaseData } from "../data/supabase-repositories";
 // use), and makes sure a matching profiles row exists. This is explicitly not
 // a production auth flow: fixed credentials, local stack only, no secrets —
 // the values below never work against any real deployment.
+//
+// Hard environment gate: startDevSession refuses to run unless
+// EXPO_PUBLIC_APP_ENV resolves to "local" (see ../config/app-env.ts). Shared
+// alpha and production builds must use real Supabase auth instead.
 
 const DEV_EMAIL = "dev@local.test";
 const DEV_PASSWORD = "local-dev-only-session";
@@ -19,6 +24,9 @@ export interface DevSessionResult {
 }
 
 export async function startDevSession(): Promise<DevSessionResult> {
+  if (!isDevSessionAllowed()) {
+    return { ok: false, message: getDevSessionBlockedHint() };
+  }
   const client = getSupabaseClient();
   if (!client) {
     return {
