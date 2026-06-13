@@ -98,3 +98,57 @@ with a dev hint.
     hint, claim card collapses after each supabase write → #123.
   - Accepted: local-demo state is session-only by design; leaving the Expo
     Go experience discards it (documented talking point above).
+
+## QA run 2026-06-13 (executed) — i18n / ServiceMessage regression pass
+
+After #142 (i18n extraction #144/#145 + ServiceMessage rendering #146) all
+UI copy renders through i18next; this run verified the visual regression
+surface on a real emulator.
+
+- **Platform**: Android emulator (AVD `qa35`, Pixel 7, Android 15 / API 35,
+  x86_64, headless), Expo Go 56, Windows host, adb-driven with reviewed
+  screenshots (`.qa-shots/qa147-*`, local only). Expo Go, not a development
+  build — not production-near.
+- **Modes**: local-demo (full UI sweep) and supabase-local (auth paths,
+  dev session, session persistence; local stack running, `adb reverse`).
+- **Passed**:
+  - App start without any raw i18n key visible; no `claims.xxx`-style
+    leakage anywhere across the run.
+  - Tab bar labels, shell header/badges, Overview sections (all five).
+  - Groups: mode switcher, title/purpose/switcher hint, `{{n}} Mitglieder`
+    interpolation, activities label, preview buttons; group/activity detail
+    modes render (data-driven).
+  - Record: labels + placeholders, validation error ("Betrag muss größer
+    als 0 sein."), split preview, save button (local-demo variant), save
+    feedback via ServiceMessage ("Demo-Draft lokal gespeichert · nicht
+    synchronisiert."), drafts incl. `{{name}}` byline ("Bezahlt von Manu ·
+    fließt in die Demo-Salden ein") and default title "Ausgabe".
+  - Claims: title/purpose, person section (net labels, open-for/from-you,
+    expanded positions with "Gruppensaldo …"/"· Forderung" suffixes),
+    lifecycle + counterparty badges, "privat · nicht geteilt",
+    `paidOf` interpolation ("15,00 € von 45,00 € bezahlt"), `fällig {{date}}`,
+    form labels/chips/placeholders, acknowledge/dispute buttons,
+    partial-payment input + button, reminder section ("morgen erinnern"),
+    timeline title, archive button.
+  - Inbox: settlement cards with both directions ("Du → Max",
+    "Anna → Du"), ledger-only line, status/action labels and all three
+    action buttons.
+  - Profile: AuthCard sign-in and sign-up views (all fields), translated
+    auth error via ServiceMessage with detail interpolation ("Anmeldung
+    nicht möglich: Invalid login credentials"), DevSessionCard (visible —
+    `EXPO_PUBLIC_APP_ENV=local`), dev-session start feedback ("Lokale
+    Dev-Session aktiv."), account card after session, sign-out feedback
+    ("Abgemeldet.").
+  - AsyncStorage session persistence: `am force-stop` + relaunch keeps the
+    session; data loads RLS-scoped without re-login ("supabase-local ·
+    lokale Daten geladen").
+- **Not exercised**: nested ServiceMessage detail (auth wrapping a profile
+  bootstrap failure — not easily triggerable from the UI; covered by unit
+  tests), real sign-up from the emulator UI (sign-up view rendered; the
+  full flow is covered by the 9/9 auth-flow smoke against the local stack),
+  shared-alpha build variant (`EXPO_PUBLIC_APP_ENV=shared-alpha` hiding the
+  dev card — covered by unit tests).
+- **Findings**: no new issues. Known items reconfirmed: SafeAreaView
+  deprecation toast (#122); sessionless supabase-local shows the raw
+  `permission denied` load hint (anon role has no grants — already tracked
+  in #123).
