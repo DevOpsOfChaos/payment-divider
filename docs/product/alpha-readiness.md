@@ -79,6 +79,10 @@ corepack pnpm db:rls-test       # optional: behavioral RLS check
   2026-06-12 (Android emulator, Expo Go, both data modes — see
   `docs/development/demo-script.md`); findings tracked in #122/#123. Expo Go
   is not a production-near development build.
+- The i18n/ServiceMessage rendering (#142) passed a dedicated emulator
+  regression run on 2026-06-13 (#147): no raw keys, interpolations correct,
+  translated auth/save feedback, AsyncStorage session persists across an
+  app restart. No new findings; #122/#123 reconfirmed.
 
 ## Next MVP 1B block
 
