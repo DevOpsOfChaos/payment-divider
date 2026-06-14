@@ -88,4 +88,8 @@ export interface ClaimsRepository {
   setClaimReminder(claimId: EntityId, remindAt: string): Promise<WriteResult>;
   snoozeClaimReminder(claimId: EntityId, remindAt: string): Promise<WriteResult>;
   disableClaimReminder(claimId: EntityId): Promise<WriteResult>;
+  // Links an unlinked counterparty to an app user by username. Linking is
+  // owner-private and never auto-exposes existing claims (sharedWithCounterparty
+  // stays unchanged). The Supabase path is deferred until #105.
+  linkCounterparty(counterpartyId: EntityId, username: string): Promise<WriteResult>;
 }

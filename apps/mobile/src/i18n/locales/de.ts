@@ -164,6 +164,10 @@ export const de = {
       openForYou: "offen für dich",
       openFromYou: "offen von dir",
       historyTitle: "Verlauf ({{n}} abgeschlossen)",
+      linkTitle: "Person verknüpfen",
+      linkUsernamePlaceholder: "@benutzername",
+      linkUsernameLabel: "Benutzername",
+      linkButton: "Verknüpfen",
     },
     position: {
       groupBalance: "Gruppensaldo",
@@ -311,6 +315,10 @@ export const de = {
       disableFailed: "Deaktivieren fehlgeschlagen: {{detail}}",
       reminderDisabledTimelineSkipped: "Erinnerung deaktiviert (Timeline übersprungen: {{detail}}).",
       reminderDisabled: "Erinnerung deaktiviert.",
+      userNotFound: "Benutzer nicht gefunden.",
+      alreadyLinked: "Gegenstelle ist bereits verknüpft.",
+      linked: "Verknüpft.",
+      linkNotYetImplemented: "Verknüpfen ist auf diesem Backend noch nicht verfügbar.",
     },
   },
   devSession: {
