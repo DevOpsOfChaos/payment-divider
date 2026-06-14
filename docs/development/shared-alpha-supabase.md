@@ -131,10 +131,11 @@ session-pooler/direct connection (not the transaction pooler), and the
 connection string must never land in shell history files that sync.
 
 **Path B — client-side smoke via supabase-js (tester-credential level).** A
-script in the style of `apps/mobile/scripts/auth-flow-smoke.ts`: two
-disposable accounts sign up, then assert allowed/forbidden behavior through
-PostgREST. Runs with only URL + publishable key (no DB password), so it can
-double as the post-deploy check. Required cases (mirroring the local suite):
+script in the style of `apps/mobile/scripts/auth-flow-smoke.ts`: three
+disposable accounts (Alice/owner, Bob/participant, Mallory/outsider) sign up,
+then assert allowed AND forbidden behavior through PostgREST. Runs with only
+URL + publishable key (no DB password), so it can double as the post-deploy
+check. Required cases (mirroring the local suite):
 
 | Case | Allowed | Forbidden |
 | --- | --- | --- |
@@ -145,8 +146,53 @@ double as the post-deploy check. Required cases (mirroring the local suite):
 | Expenses | member insert; creator soft-delete (`deleted_at`) | non-creator cannot soft-delete; ledger columns pinned |
 | Claim transitions | allowed transitions per core table | forbidden transitions rejected by trigger (#106) |
 
-Path B is its own small implementation task → **#139**. Until it exists,
-Path A is the verification step in this runbook.
+Path B is implemented in `apps/mobile/scripts/shared-rls-smoke.ts` (issue #139).
+
+### Running Path B
+
+**Prerequisite:** email confirmation must be disabled (autoconfirm on) in the
+Supabase project's Auth settings so sign-ups return a session immediately.
+Local stack has this on by default.
+
+Local stack:
+
+```powershell
+$env:SUPABASE_URL = "http://127.0.0.1:54321"
+$env:SUPABASE_PUBLIC_KEY = "<anon key from supabase status>"
+corepack pnpm db:shared-rls-smoke
+```
+
+Shared-alpha project (no service role key required — publishable key only):
+
+```powershell
+$env:SUPABASE_URL = "<shared project URL>"
+$env:SUPABASE_PUBLIC_KEY = "<publishable/anon key>"
+corepack pnpm db:shared-rls-smoke
+```
+
+Exit code `0` = all checks passed. Exit code `1` = at least one failure or
+missing env vars.
+
+### Cleanup
+
+The script creates three smoke accounts (`pd-rls-smoke-alice-*`,
+`pd-rls-smoke-bob-*`, `pd-rls-smoke-mallory-*`) and associated rows on every
+run. There is no service role key and no server-side rollback.
+
+- **Local stack:** `supabase db reset` clears all data cleanly.
+- **Shared project:** the maintainer must delete smoke accounts manually via
+  dashboard → Auth → Users (filter by `pd-rls-smoke-`). Data rows cascade-delete
+  when the auth user is removed. No automated cleanup without the service role
+  key; run the smoke infrequently on the shared project and clean up promptly.
+
+### Not client-testable via Path B
+
+These cases are covered by the SQL suite (Path A) but cannot be fully exercised
+through the publishable-key client:
+
+- `payment_actions` status transitions (no raw insert path in this script)
+- `claim_payments` immutability (requires more setup; omitted for scope)
+- Exact trigger error message content (checked as error-present only)
 
 - [ ] Smoke (A or B) executed against the shared project, dated here, before
       the first invite.
