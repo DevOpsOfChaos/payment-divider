@@ -91,6 +91,22 @@ corepack pnpm --filter @payment-divider/mobile exec tsx scripts/auth-flow-smoke.
 
 It refuses non-local URLs by design. Last run 2026-06-12: 9/9 PASS.
 
+A second smoke script (`shared-rls-smoke.ts`) exercises RLS behavior
+client-side: three disposable accounts (Alice/owner, Bob/participant,
+Mallory/outsider) assert allowed and forbidden paths through PostgREST.
+This is Path B from the shared-alpha runbook (§5 in
+`docs/development/shared-alpha-supabase.md`):
+
+```powershell
+$env:SUPABASE_URL = "http://127.0.0.1:54321"
+$env:SUPABASE_PUBLIC_KEY = "<publishable key from supabase status>"
+corepack pnpm db:shared-rls-smoke
+```
+
+The script also runs against the shared-alpha project with the same env vars
+pointing at the remote URL; see `shared-alpha-supabase.md` §5 for details and
+cleanup instructions.
+
 ## Mobile data modes
 
 The mobile app defaults to `local-demo` (pure in-memory mocks). Setting `EXPO_PUBLIC_DATA_SOURCE=supabase-local` in `apps/mobile/.env` (template: `.env.example` at the repo root) selects the local-Supabase mode, configured via `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLIC_KEY` — both printed by `supabase start`. Missing configuration falls back to local-demo with a dev hint instead of crashing. Only `.env.example` may be committed; the boundary check enforces this and rejects secret-like values in it.
