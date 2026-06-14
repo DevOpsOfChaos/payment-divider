@@ -10,6 +10,7 @@ import {
   isClaimClosed,
   isLinkedClaim,
   isReminderActive,
+  linkCounterpartyToUser,
   normalizeCounterpartyName,
   snoozeReminder,
   summarizeClaimsByPerson,
@@ -262,6 +263,37 @@ function disableClaimReminder(claimId: EntityId): WriteResult {
   return { ok: true, message: msg("service.claims.reminderDisabled") };
 }
 
+function linkCounterparty(counterpartyId: EntityId, username: string): WriteResult {
+  const counterparty = ownCounterparties().find((candidate) => candidate.id === counterpartyId);
+  if (!counterparty) {
+    return { ok: false, message: msg("service.claims.personNotFound") };
+  }
+  if (counterparty.kind === "app_user") {
+    return { ok: false, message: msg("service.claims.alreadyLinked") };
+  }
+  const normalized = username.trim().toLowerCase().replace(/^@/, "");
+  const target = MOCK_USERS.find(
+    (user) => user.username === normalized && user.id !== MOCK_CURRENT_USER_ID,
+  );
+  if (!target) {
+    return { ok: false, message: msg("service.claims.userNotFound") };
+  }
+  // Prevent linking two counterparties to the same user.
+  if (
+    ownCounterparties().some(
+      (candidate) => candidate.linkedUserId === target.id && candidate.id !== counterpartyId,
+    )
+  ) {
+    return { ok: false, message: msg("service.claims.alreadyLinked") };
+  }
+  const linked = linkCounterpartyToUser(counterparty, target.id, nowIso());
+  counterparties = counterparties.map((candidate) =>
+    candidate.id === counterpartyId ? linked : candidate,
+  );
+  notifyExternalDataChanged();
+  return { ok: true, message: msg("service.claims.linked") };
+}
+
 function groupName(groupId: EntityId | undefined): string | undefined {
   if (!groupId) {
     return undefined;
@@ -388,4 +420,6 @@ export const mockClaimsRepository: ClaimsRepository = {
   snoozeClaimReminder: async (claimId, remindAt) =>
     snoozeClaimReminder(claimId, remindAt),
   disableClaimReminder: async (claimId) => disableClaimReminder(claimId),
+  linkCounterparty: async (counterpartyId, username) =>
+    linkCounterparty(counterpartyId, username),
 };

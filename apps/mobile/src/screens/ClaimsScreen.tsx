@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type {
   ClaimDirection,
+  Counterparty,
   CounterpartyKind,
   EntityId,
   PersonBalanceOverview,
@@ -89,10 +90,18 @@ function usePositionLabel(): (position: PersonBalancePosition) => string {
 
 // One person row: net summary up front, gross positions on demand. Closed
 // positions stay reachable as history but never count into the net.
-function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
+function PersonOverviewRow({
+  overview,
+  counterparty,
+}: {
+  overview: PersonBalanceOverview;
+  counterparty?: Counterparty;
+}) {
   const { t } = useTranslation();
   const positionLabel = usePositionLabel();
   const [expanded, setExpanded] = useState(false);
+  const [linkUsername, setLinkUsername] = useState("");
+  const [linkError, setLinkError] = useState<string | undefined>(undefined);
 
   return (
     <View style={styles.personRow}>
@@ -152,6 +161,48 @@ function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
                     : t("claims.position.done")}
                 </Text>
               ))}
+            </>
+          ) : null}
+          {counterparty && counterparty.kind !== "app_user" ? (
+            <>
+              <Text style={styles.detailTitle}>
+                {t("claims.personSection.linkTitle")}
+              </Text>
+              <View style={styles.paymentRow}>
+                <TextInput
+                  style={styles.paymentInput}
+                  value={linkUsername}
+                  onChangeText={(text) => {
+                    setLinkUsername(text);
+                    setLinkError(undefined);
+                  }}
+                  placeholder={t("claims.personSection.linkUsernamePlaceholder")}
+                  accessibilityLabel={t("claims.personSection.linkUsernameLabel")}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={linkUsername.trim().length === 0}
+                  onPress={() => {
+                    void claimsData
+                      .linkCounterparty(counterparty.id, linkUsername.trim())
+                      .then((result) => {
+                        if (result.ok) {
+                          setLinkUsername("");
+                          setLinkError(undefined);
+                        } else {
+                          setLinkError(formatServiceMessage(t, result.message));
+                        }
+                      });
+                  }}
+                  style={styles.actionButton}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {t("claims.personSection.linkButton")}
+                  </Text>
+                </Pressable>
+              </View>
+              {linkError ? <Text style={styles.errorText}>{linkError}</Text> : null}
             </>
           ) : null}
         </View>
@@ -414,6 +465,9 @@ export function ClaimsScreen() {
               <PersonOverviewRow
                 key={`${personOverview.currency}:${personOverview.counterpartyId}`}
                 overview={personOverview}
+                counterparty={existingCounterparties.find(
+                  (candidate) => candidate.id === personOverview.counterpartyId,
+                )}
               />
             ))
           )}
