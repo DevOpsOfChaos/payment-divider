@@ -18,6 +18,7 @@ import {
   type Claim,
   type ClaimDirection,
   type ClaimPayment,
+  type ClaimStatus,
 } from "./claims";
 import type { Counterparty } from "./counterparties";
 
@@ -38,6 +39,8 @@ export interface PersonBalancePosition {
   currency: CurrencyCode;
   label?: string;
   closed: boolean;
+  // Only set when closed === true; the terminal claim status (settled or archived).
+  closedStatus?: ClaimStatus;
 }
 
 export interface PersonBalanceOverview {
@@ -81,6 +84,11 @@ export function claimsToPersonPositions(
       currency: claim.currency,
       label: claim.purpose,
       closed,
+      closedStatus: closed
+        ? claim.status === "archived" || claim.archivedAt != null
+          ? "archived"
+          : "settled"
+        : undefined,
     };
   });
 }

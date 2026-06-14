@@ -147,7 +147,9 @@ function PersonOverviewRow({ overview }: { overview: PersonBalanceOverview }) {
                   style={styles.detailLine}
                 >
                   {formatMoney(position.amount)} · {positionLabel(position)} ·{" "}
-                  {t("claims.position.done")}
+                  {position.closedStatus === "archived"
+                    ? t("claims.lifecycle.archived")
+                    : t("claims.position.done")}
                 </Text>
               ))}
             </>
