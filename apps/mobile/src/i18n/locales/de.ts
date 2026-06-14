@@ -168,6 +168,7 @@ export const de = {
       linkUsernamePlaceholder: "@benutzername",
       linkUsernameLabel: "Benutzername",
       linkButton: "Verknüpfen",
+      linkSuccess: "Verknüpfung erstellt. Diese Person ist jetzt in deiner Ansicht mit einem App-Nutzer verbunden. Es wurde keine Zahlung ausgelöst und kein Freundschaftsprofil erstellt. Bestehende private Claims werden dadurch nicht automatisch geteilt.",
     },
     position: {
       groupBalance: "Gruppensaldo",
