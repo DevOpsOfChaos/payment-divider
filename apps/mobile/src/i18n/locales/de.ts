@@ -204,6 +204,21 @@ export const de = {
     },
     timeline: {
       title: "Timeline",
+      events: {
+        claim_created: "Erstellt",
+        claim_linked: "Person verknüpft",
+        claim_acknowledged: "Bestätigt",
+        claim_disputed: "Abgelehnt",
+        claim_clarified: "Klärung eingereicht",
+        payment_recorded: "Zahlung vermerkt",
+        payment_confirmed: "Zahlung bestätigt",
+        payment_rejected: "Zahlung abgelehnt",
+        claim_marked_paid: "Als bezahlt markiert",
+        claim_settled: "Ausgeglichen",
+        claim_archived: "Archiviert",
+        reminder_set: "Erinnerung gesetzt",
+        reminder_cleared: "Erinnerung entfernt",
+      },
     },
     actions: {
       acknowledge: "bestätigen",

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type {
   ClaimDirection,
+  ClaimEventType,
   Counterparty,
   CounterpartyKind,
   EntityId,
@@ -57,6 +58,22 @@ const COUNTERPARTY_KIND_KEYS = {
   invited_person: "claims.counterpartyKind.invitedPerson",
   external_person: "claims.counterpartyKind.externalPerson",
 } as const satisfies Record<CounterpartyKind, string>;
+
+const CLAIM_EVENT_LABELS = {
+  claim_created: "claims.timeline.events.claim_created",
+  claim_linked: "claims.timeline.events.claim_linked",
+  claim_acknowledged: "claims.timeline.events.claim_acknowledged",
+  claim_disputed: "claims.timeline.events.claim_disputed",
+  claim_clarified: "claims.timeline.events.claim_clarified",
+  payment_recorded: "claims.timeline.events.payment_recorded",
+  payment_confirmed: "claims.timeline.events.payment_confirmed",
+  payment_rejected: "claims.timeline.events.payment_rejected",
+  claim_marked_paid: "claims.timeline.events.claim_marked_paid",
+  claim_settled: "claims.timeline.events.claim_settled",
+  claim_archived: "claims.timeline.events.claim_archived",
+  reminder_set: "claims.timeline.events.reminder_set",
+  reminder_cleared: "claims.timeline.events.reminder_cleared",
+} as const satisfies Record<ClaimEventType, string>;
 
 function Chip({
   label,
@@ -378,7 +395,7 @@ function ClaimCard({ item }: { item: ClaimListItem }) {
           <Text style={styles.detailTitle}>{t("claims.timeline.title")}</Text>
           {item.events.map((event) => (
             <Text key={event.id} style={styles.detailLine}>
-              {event.createdAt.slice(0, 10)} · {event.eventType}
+              {event.createdAt.slice(0, 10)} · {t(CLAIM_EVENT_LABELS[event.eventType])}
             </Text>
           ))}
 
