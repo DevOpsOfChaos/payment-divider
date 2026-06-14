@@ -97,7 +97,7 @@ Smoke: `supabase/tests/rls_smoke_test.sql`, 43 assertions
 | Table | Read | Write | Fits class | Smoke |
 | --- | --- | --- | --- | --- |
 | `profiles` | own + fellow group members | insert/update own | ✓ | ✓ (#127) |
-| `friend_connections` | participants | **none** | dormant by decision (#127); build flow or drop before alpha → #132 | none |
+| `friend_connections` | participants | **none** | dormant by decision (#132): not required for alpha; Social Graph deferred to MVP 1C | none |
 | `groups` | members | insert as creator | ✓ | ✓ |
 | `group_members` | fellow members | insert self-as-creator / by admin; **no leave/role-change** | OK for alpha (invite flow later) | ✓ (visibility) |
 | `group_contexts` | members | insert members, update admin | ✓ | indirect |
@@ -135,7 +135,7 @@ Profile-tab card is hidden (`apps/mobile/src/config/app-env.ts`, unit-tested).
 | RLS verification against shared project | plan **documented** (#138 runbook §5): Path A = rolled-back SQL suite via psql (maintainer), Path B = client-side supabase-js smoke → #139; must run before invites; local 43/43 is necessary but not sufficient | **Blocker** (execution; script → #139) |
 | Seed/test data concept | **documented** (#138 runbook §4): shared project starts empty, `seed.sql` stays local-only, testers create real data | Done |
 | RLS smoke gaps (see 3) | **done** (#127): profiles visibility, inbox ownership/resolve, expense soft-delete covered; participation/availability cases follow with their write paths (#131) | Done |
-| Unused/partial tables | inbox resolve + expense soft-delete **done** (#127); `context_members`/`member_availability` read-only until membership flows (#131); `friend_connections` decision → #132 | Mostly done |
+| Unused/partial tables | inbox resolve + expense soft-delete **done** (#127); `context_members`/`member_availability` read-only until membership flows (#131); `friend_connections` dormant by decision (#132) | Mostly done |
 | Backup/key handling | stays #109 (premium, E2E) — explicitly **not** alpha | Not in alpha |
 | Push, contact book, offline sync, payment anything | excluded by #93 boundary | Not in alpha |
 
@@ -162,9 +162,9 @@ Net remaining work: execute the #138 runbook (create the EU project, deploy,
 smoke, distribute config) plus the #139 script.
 
 **Can follow during alpha**: seed/testdata doc, participation/availability
-write paths with the membership flows (#131), friend_connections decision
-(#132). Inbox resolve, expense soft-delete and the matching smoke cases are
-done (#127).
+write paths with the membership flows (#131). `friend_connections` decision
+is done (#132): dormant, Social Graph deferred to MVP 1C. Inbox resolve,
+expense soft-delete and the matching smoke cases are done (#127).
 
 **Deliberately not part of alpha**: encrypted backup & key handling (#109),
 premium features, push/notifications, contact book, offline sync, public
