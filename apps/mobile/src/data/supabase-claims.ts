@@ -214,14 +214,14 @@ function ensureLoaded(): ClaimsRemoteData | undefined {
         notifyExternalDataChanged();
       });
   }
-  return undefined;
+  // Return stale snapshot while loading so UI stays stable across writes.
+  return remote;
 }
 
 // Drops the cached snapshot so the next read refetches, e.g. after a write or
 // when the dev session changes.
 export function reloadSupabaseClaims(): void {
   loadState = "idle";
-  remote = undefined;
   loadErrorMessage = undefined;
   notifyExternalDataChanged();
 }
@@ -233,6 +233,9 @@ function getStatusHint(): string {
         ? "supabase-local · Forderungen aus der lokalen Datenbank"
         : "supabase-local · keine Session: RLS blendet alle Forderungen aus (Dev-Hinweis)";
     case "error":
+      if (!currentUserId) {
+        return "supabase-local · keine Session: RLS blendet alle Forderungen aus (Dev-Hinweis)";
+      }
       return `supabase-local · Ladefehler: ${loadErrorMessage ?? "unbekannt"} · Fallback auf local-demo Daten`;
     case "loading":
       return "supabase-local · lädt Forderungen · zeigt solange local-demo Daten";

@@ -323,6 +323,9 @@ export function getSupabaseDataStatusHint(): string {
         ? "supabase-local · lokale Daten geladen"
         : "supabase-local · keine Session: RLS blendet alle Daten aus (Dev-Hinweis, siehe docs)";
     case "error":
+      if (!currentUserId) {
+        return "supabase-local · keine Session: RLS blendet alle Daten aus (Dev-Hinweis, siehe docs)";
+      }
       return `supabase-local · Ladefehler: ${loadErrorMessage ?? "unbekannt"} · Fallback auf local-demo Daten`;
     case "loading":
       return "supabase-local · lädt lokale Daten · zeigt solange local-demo Daten";

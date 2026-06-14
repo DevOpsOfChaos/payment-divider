@@ -139,6 +139,18 @@ test("closed positions are excluded from open set and net but kept as history", 
   assert.equal(overview[0].closedPositions[0].sourceId, "settled");
   // History keeps the original amount.
   assert.equal(overview[0].closedPositions[0].amount, 1000);
+  assert.equal(overview[0].closedPositions[0].closedStatus, "settled");
+});
+
+test("archived claims carry closedStatus=archived in the history", () => {
+  const claims = [
+    makeClaim({ id: "arc", counterpartyId: LINKED_ANNA.id, amount: 500, status: "archived" }),
+  ];
+  const overview = overviewFor(claimsToPersonPositions(claims, [], COUNTERPARTIES));
+
+  assert.equal(overview[0].closedPositions.length, 1);
+  assert.equal(overview[0].closedPositions[0].closedStatus, "archived");
+  assert.equal(overview[0].openPositions.length, 0);
 });
 
 test("partial payments reduce the open position amount", () => {
