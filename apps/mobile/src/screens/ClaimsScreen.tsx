@@ -102,6 +102,7 @@ function PersonOverviewRow({
   const [expanded, setExpanded] = useState(false);
   const [linkUsername, setLinkUsername] = useState("");
   const [linkError, setLinkError] = useState<string | undefined>(undefined);
+  const [linkSuccess, setLinkSuccess] = useState(false);
 
   return (
     <View style={styles.personRow}>
@@ -175,6 +176,7 @@ function PersonOverviewRow({
                   onChangeText={(text) => {
                     setLinkUsername(text);
                     setLinkError(undefined);
+                    setLinkSuccess(false);
                   }}
                   placeholder={t("claims.personSection.linkUsernamePlaceholder")}
                   accessibilityLabel={t("claims.personSection.linkUsernameLabel")}
@@ -190,8 +192,10 @@ function PersonOverviewRow({
                         if (result.ok) {
                           setLinkUsername("");
                           setLinkError(undefined);
+                          setLinkSuccess(true);
                         } else {
                           setLinkError(formatServiceMessage(t, result.message));
+                          setLinkSuccess(false);
                         }
                       });
                   }}
@@ -204,6 +208,9 @@ function PersonOverviewRow({
               </View>
               {linkError ? <Text style={styles.errorText}>{linkError}</Text> : null}
             </>
+          ) : null}
+          {linkSuccess ? (
+            <Text style={styles.detailLine}>{t("claims.personSection.linkSuccess")}</Text>
           ) : null}
         </View>
       ) : null}
