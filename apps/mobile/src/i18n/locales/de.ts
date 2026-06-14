@@ -131,6 +131,12 @@ export const de = {
         reject: "ablehnen",
       },
     },
+    reminders: {
+      sectionTitle: "Fällige Erinnerungen",
+      cardTitle: "Erinnerung fällig",
+      dueAt: "Fällig am {{date}}",
+      noPurpose: "Ohne Zweck",
+    },
   },
   claims: {
     title: "Forderungen",
