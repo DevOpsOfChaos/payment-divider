@@ -5,11 +5,13 @@ import { Pressable } from "react-native";
 
 import {
   appRepositories,
+  claimsData,
   confirmPaymentAction,
   formatMoney,
   markPaymentActionPaid,
   rejectPaymentAction,
   useLedgerVersion,
+  type ClaimListItem,
   type SettlementActionKind,
   type SettlementItemData,
 } from "../data";
@@ -70,6 +72,26 @@ function SettlementCard({ item }: { item: SettlementItemData }) {
   );
 }
 
+function ReminderCard({ item }: { item: ClaimListItem }) {
+  const { t } = useTranslation();
+  const purpose = item.claim.purpose ?? t("inbox.reminders.noPurpose");
+  const dueDate = item.reminder?.remindAt.slice(0, 10) ?? "";
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemTitle}>{t("inbox.reminders.cardTitle")}</Text>
+        <Text style={styles.sourcePill}>{item.counterpartyName}</Text>
+      </View>
+      <Text style={styles.itemDetail}>
+        {purpose} · {formatMoney(item.claim.amount)}
+      </Text>
+      <View style={styles.metaBlock}>
+        <Text style={styles.metaLabel}>{t("inbox.reminders.dueAt", { date: dueDate })}</Text>
+      </View>
+    </View>
+  );
+}
+
 function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock) {
   const { t } = useTranslation();
   return (
@@ -96,8 +118,11 @@ function InboxCard({ title, detail, source, status, actionLabel }: InboxItemMock
 
 export function InboxScreen() {
   useLedgerVersion();
+  const { t } = useTranslation();
   const INBOX = appRepositories.getInbox();
   const settlementItems = appRepositories.getSettlementItems();
+  const { openClaims } = claimsData.getClaimsOverview();
+  const dueReminders = openClaims.filter((item) => item.reminderDue);
 
   return (
     <View style={styles.screenCard}>
@@ -107,6 +132,15 @@ export function InboxScreen() {
       <View style={styles.summaryCard}>
         <Text style={styles.summaryText}>{INBOX.summary}</Text>
       </View>
+
+      {dueReminders.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t("inbox.reminders.sectionTitle")}</Text>
+          {dueReminders.map((item) => (
+            <ReminderCard key={item.claim.id} item={item} />
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         {settlementItems.map((item) => (
@@ -139,6 +173,11 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontSize: 28,
+    fontWeight: "700",
+    color: "#1f1b16",
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: "700",
     color: "#1f1b16",
   },

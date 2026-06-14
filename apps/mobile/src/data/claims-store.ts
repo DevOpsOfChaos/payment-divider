@@ -25,6 +25,7 @@ import {
 import {
   MOCK_CLAIM_EVENTS,
   MOCK_CLAIM_PAYMENTS,
+  MOCK_CLAIM_REMINDERS,
   MOCK_CLAIMS,
   MOCK_COUNTERPARTIES,
 } from "../mock-data/claims";
@@ -49,9 +50,9 @@ let counterparties: readonly Counterparty[] = MOCK_COUNTERPARTIES;
 let claims: readonly Claim[] = MOCK_CLAIMS;
 let payments: readonly ClaimPayment[] = MOCK_CLAIM_PAYMENTS;
 let events: readonly ClaimEvent[] = MOCK_CLAIM_EVENTS;
-// Personal reminders (session-only, start empty): self-set memory aids that
-// are never sent anywhere and never visible to the other side.
-let reminders: readonly ClaimReminder[] = [];
+// Personal reminders: self-set memory aids, never sent anywhere, never visible
+// to the other side. Seeded with demo data so due reminders appear on open.
+let reminders: readonly ClaimReminder[] = MOCK_CLAIM_REMINDERS;
 
 function nowIso(): string {
   return new Date().toISOString();

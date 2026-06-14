@@ -1,4 +1,4 @@
-import type { Claim, ClaimEvent, ClaimPayment, Counterparty } from "@payment-divider/core";
+import type { Claim, ClaimEvent, ClaimPayment, ClaimReminder, Counterparty } from "@payment-divider/core";
 
 import { MOCK_CURRENT_USER_ID, MOCK_GROUP_IDS, MOCK_USER_IDS } from "./ledger";
 
@@ -165,5 +165,17 @@ export const MOCK_CLAIM_EVENTS: ClaimEvent[] = [
     actorUserId: MOCK_USER_IDS.anna,
     eventType: "payment_recorded",
     createdAt: "2026-06-06T18:00:00.000Z",
+  },
+];
+
+// Seed one due reminder for the demo (remind_at in the past → fires on open).
+// Reminders are personal: owner only, never sent anywhere, no push.
+export const MOCK_CLAIM_REMINDERS: ClaimReminder[] = [
+  {
+    id: "reminder-jana-concert",
+    claimId: "claim-invited-jana",
+    userId: MOCK_CURRENT_USER_ID,
+    remindAt: "2026-06-10T08:00:00.000Z",
+    createdAt: CREATED_AT,
   },
 ];
