@@ -30,6 +30,7 @@ import {
   disableClaimReminderRow,
   getOrCreateCounterpartyId,
   insertClaimReminder,
+  linkCounterpartyToUserRow,
   recordClaimPayment,
   snoozeClaimReminderRow,
   transitionClaim,
@@ -541,11 +542,8 @@ export const supabaseClaimsRepository: ClaimsRepository = {
       }
       return disableClaimReminderRow(client, userId, reminder, new Date().toISOString());
     }),
-  // Supabase counterparty linking path deferred until #105 (invite/accept flow).
-  // Schema and RLS are ready: counterparties_update_own allows owner to set
-  // linked_user_id; profiles has username for lookup.
-  linkCounterparty: async () => ({
-    ok: false,
-    message: msg("service.claims.linkNotYetImplemented"),
-  }),
+  linkCounterparty: (counterpartyId, username) =>
+    withSession(async (client, userId) => {
+      return linkCounterpartyToUserRow(client, userId, counterpartyId, username);
+    }),
 };

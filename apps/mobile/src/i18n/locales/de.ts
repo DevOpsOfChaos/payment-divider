@@ -318,7 +318,7 @@ export const de = {
       userNotFound: "Benutzer nicht gefunden.",
       alreadyLinked: "Gegenstelle ist bereits verknüpft.",
       linked: "Verknüpft.",
-      linkNotYetImplemented: "Verknüpfen ist auf diesem Backend noch nicht verfügbar.",
+      userLinkFailed: "Verknüpfen fehlgeschlagen: {{detail}}",
     },
   },
   devSession: {

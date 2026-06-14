@@ -280,3 +280,49 @@ export async function transitionClaim(
       : msg("service.claims.statusUpdatedSupabase"),
   };
 }
+
+// Links an external/invited counterparty to an app user by username.
+// Profile lookup is scoped by RLS: only the requester's own profile and
+// profiles of fellow group members are readable — no global user search.
+// Linking is owner-private: existing claims keep sharedWithCounterparty
+// unchanged (linking never auto-exposes private claims).
+export async function linkCounterpartyToUserRow(
+  client: AppSupabaseClient,
+  userId: string,
+  counterpartyId: EntityId,
+  username: string,
+): Promise<WriteResult> {
+  const normalized = username.trim().toLowerCase().replace(/^@/, "");
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("id")
+    .eq("username", normalized)
+    .neq("id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (profileError) {
+    return {
+      ok: false,
+      message: msg("service.claims.userLinkFailed", { detail: profileError.message }),
+    };
+  }
+  if (!profile) {
+    return { ok: false, message: msg("service.claims.userNotFound") };
+  }
+  const { data, error: updateError } = await client
+    .from("counterparties")
+    .update({ kind: "app_user", linked_user_id: profile.id })
+    .eq("id", counterpartyId)
+    .eq("owner_user_id", userId)
+    .select("id");
+  if (updateError) {
+    return {
+      ok: false,
+      message: msg("service.claims.userLinkFailed", { detail: updateError.message }),
+    };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, message: msg("service.claims.alreadyLinked") };
+  }
+  return { ok: true, message: msg("service.claims.linked") };
+}
