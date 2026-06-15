@@ -5,6 +5,7 @@ import {
   getActiveParticipants,
   getPeriodRange,
   isParticipantActiveInPeriod,
+  splitPeriodShares,
   type CostPlan,
   type CostPlanParticipant,
 } from "./cost-plans";
@@ -123,4 +124,104 @@ test("overlapping participation records for the same counterparty are rejected",
   const overlapping = makeParticipant({ id: "p2", joinedAtPeriodIndex: 1 });
 
   assert.throws(() => getActiveParticipants([first, overlapping], 2));
+});
+
+// --- splitPeriodShares ---
+
+test("equal split with no participants: owner gets full amount", () => {
+  const shares = splitPeriodShares(1000, []);
+  assert.equal(shares.length, 1);
+  assert.equal(shares[0].counterpartyId, undefined);
+  assert.equal(shares[0].amount, 1000);
+});
+
+test("equal split: owner counts as one of N+1 heads, remainder to lowest sorted counterparty IDs", () => {
+  // 3 participants + 1 owner = 4 heads. 1000 / 4 = 250 each, remainder 0.
+  const participants = [
+    makeParticipant({ id: "p1", counterpartyId: "cp-anna" }),
+    makeParticipant({ id: "p2", counterpartyId: "cp-ben" }),
+    makeParticipant({ id: "p3", counterpartyId: "cp-clara" }),
+  ];
+  const shares = splitPeriodShares(1000, participants);
+  // 3 participant entries + 1 owner entry.
+  assert.equal(shares.length, 4);
+  const total = shares.reduce((s, e) => s + e.amount, 0);
+  assert.equal(total, 1000);
+  // Each head gets exactly 250 (no remainder).
+  for (const share of shares) {
+    assert.equal(share.amount, 250);
+  }
+});
+
+test("equal split remainder goes to lowest sorted counterparty IDs first", () => {
+  // 2 participants + 1 owner = 3 heads. 10 / 3 = 3 remainder 1.
+  // Sorted: cp-anna < cp-ben. Anna gets base+1=4, Ben gets base=3, owner gets 3.
+  const anna = makeParticipant({ id: "p1", counterpartyId: "cp-anna" });
+  const ben = makeParticipant({ id: "p2", counterpartyId: "cp-ben" });
+  const shares = splitPeriodShares(10, [anna, ben]);
+  const byId = Object.fromEntries(shares.map((e) => [e.counterpartyId ?? "owner", e.amount]));
+  assert.equal(byId["cp-anna"], 4);
+  assert.equal(byId["cp-ben"], 3);
+  assert.equal(byId["owner"], 3);
+});
+
+test("equal split: owner's share equals floor(amount / headCount)", () => {
+  // 1 participant + 1 owner = 2 heads. 7 / 2 = 3 remainder 1.
+  // Participant (only one, gets remainder): 4. Owner: 3.
+  const p = makeParticipant({ id: "p1", counterpartyId: "cp-anna" });
+  const shares = splitPeriodShares(7, [p]);
+  const owner = shares.find((e) => e.counterpartyId === undefined);
+  assert.equal(owner?.amount, 3);
+  assert.equal(shares.find((e) => e.counterpartyId === "cp-anna")?.amount, 4);
+});
+
+test("fixed split: participants claim fixed shareValues, owner gets remainder", () => {
+  const anna = makeParticipant({
+    id: "p1",
+    counterpartyId: "cp-anna",
+    shareType: "fixed",
+    shareValue: 300,
+  });
+  const ben = makeParticipant({
+    id: "p2",
+    counterpartyId: "cp-ben",
+    shareType: "fixed",
+    shareValue: 400,
+  });
+  const shares = splitPeriodShares(1000, [anna, ben]);
+  const byId = Object.fromEntries(shares.map((e) => [e.counterpartyId ?? "owner", e.amount]));
+  assert.equal(byId["cp-anna"], 300);
+  assert.equal(byId["cp-ben"], 400);
+  assert.equal(byId["owner"], 300);
+});
+
+test("fixed split: rejects when fixed shares exceed period amount", () => {
+  const p = makeParticipant({
+    id: "p1",
+    counterpartyId: "cp-anna",
+    shareType: "fixed",
+    shareValue: 1200,
+  });
+  assert.throws(() => splitPeriodShares(1000, [p]));
+});
+
+test("fixed split: rejects participant missing shareValue", () => {
+  const p = makeParticipant({ id: "p1", shareType: "fixed" }); // no shareValue
+  assert.throws(() => splitPeriodShares(1000, [p]));
+});
+
+test("splitPeriodShares rejects mixed equal/fixed share types", () => {
+  const eq = makeParticipant({ id: "p1", counterpartyId: "cp-anna" });
+  const fixed = makeParticipant({
+    id: "p2",
+    counterpartyId: "cp-ben",
+    shareType: "fixed",
+    shareValue: 200,
+  });
+  assert.throws(() => splitPeriodShares(1000, [eq, fixed]));
+});
+
+test("splitPeriodShares rejects non-integer period amount", () => {
+  const p = makeParticipant({ id: "p1" });
+  assert.throws(() => splitPeriodShares(9.99, [p]));
 });
