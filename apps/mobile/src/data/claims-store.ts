@@ -290,6 +290,9 @@ function linkCounterparty(counterpartyId: EntityId, username: string): WriteResu
   counterparties = counterparties.map((candidate) =>
     candidate.id === counterpartyId ? linked : candidate,
   );
+  claims
+    .filter((claim) => claim.counterpartyId === counterpartyId)
+    .forEach((claim) => appendEvent(claim.id, "claim_linked"));
   notifyExternalDataChanged();
   return { ok: true, message: msg("service.claims.linked") };
 }

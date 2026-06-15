@@ -324,5 +324,16 @@ export async function linkCounterpartyToUserRow(
   if (!data || data.length === 0) {
     return { ok: false, message: msg("service.claims.alreadyLinked") };
   }
+  // Best effort: a rejected event never rolls back the counterparty update.
+  const { data: claimRows } = await client
+    .from("claims")
+    .select("id")
+    .eq("counterparty_id", counterpartyId)
+    .eq("creator_user_id", userId);
+  if (claimRows) {
+    for (const row of claimRows) {
+      await appendClaimEvent(client, userId, row.id, "claim_linked");
+    }
+  }
   return { ok: true, message: msg("service.claims.linked") };
 }
