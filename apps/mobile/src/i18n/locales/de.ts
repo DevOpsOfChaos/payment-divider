@@ -49,6 +49,7 @@ export const de = {
       claims: "Forderungen",
       inbox: "Inbox",
       profile: "Profil",
+      recurringCosts: "Kosten",
     },
   },
   groups: {
@@ -246,6 +247,38 @@ export const de = {
     sections: {
       open: "Offene Forderungen",
       closed: "Abgeschlossen ({{n}})",
+    },
+  },
+  recurringCosts: {
+    title: "Wiederkehrende Kosten",
+    purpose:
+      "Kostenplanung: Vorschau geplanter Anteile pro Periode. Keine Zahlungsausführung, kein Bankkonto.",
+    sections: {
+      active: "Aktive Kostenpläne",
+      archived: "Archiviert ({{n}})",
+    },
+    status: {
+      active: "Aktiv",
+      archived: "Archiviert",
+    },
+    interval: {
+      monthly: "Monatlich",
+      yearly: "Jährlich",
+      customDays: "Alle {{n}} Tage",
+    },
+    card: {
+      anchorDate: "Start",
+      participants: "Teilnehmer",
+      shareType: {
+        equal: "gleich",
+        fixed: "fest",
+      },
+      prepaid: "Vorauszahlung",
+      empty: "Keine Kostenpläne vorhanden.",
+      periodPreview: "Vorschau aktuelle Periode",
+      ownerShare: "Du (Eigentümer)",
+      noParticipants: "Keine Teilnehmer.",
+      previewNote: "Nur Planung — keine Zahlung, kein Bankkonto.",
     },
   },
   // Service-layer result messages (#142): services return stable keys into

@@ -6,8 +6,9 @@ import { InboxScreen } from "../screens/InboxScreen";
 import { OverviewScreen } from "../screens/OverviewScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { RecordScreen } from "../screens/RecordScreen";
+import { RecurringCostsScreen } from "../screens/RecurringCostsScreen";
 
-export type TabId = "overview" | "groups" | "record" | "claims" | "inbox" | "profile";
+export type TabId = "overview" | "groups" | "record" | "claims" | "inbox" | "profile" | "recurring_costs";
 
 // Tab labels are UI copy and live in the i18n locale files; the map keeps the
 // keys compile-checked against the typed t(). The ScreenContent blocks below
@@ -20,6 +21,7 @@ export const TAB_LABEL_KEYS = {
   claims: "navigation.tabs.claims",
   inbox: "navigation.tabs.inbox",
   profile: "navigation.tabs.profile",
+  recurring_costs: "navigation.tabs.recurringCosts",
 } as const satisfies Record<TabId, string>;
 
 export interface ScreenContent {
@@ -105,6 +107,15 @@ export const TABS: TabDefinition[] = [
         "Sichtbarkeitsprofile",
         "Zahlungsdaten später verwalten",
       ],
+    },
+  },
+  {
+    id: "recurring_costs",
+    component: RecurringCostsScreen,
+    screen: {
+      title: "Wiederkehrende Kosten",
+      purpose: "Kostenplanung: geplante Anteile pro Periode. Keine Zahlungsausführung.",
+      placeholderLines: ["Kostenplan", "Teilnehmer", "Vorschau"],
     },
   },
 ];
