@@ -300,6 +300,137 @@ export type Database = {
           },
         ]
       }
+      cost_plan_participants: {
+        Row: {
+          cost_plan_id: string
+          counterparty_id: string
+          created_at: string
+          id: string
+          joined_at_period_index: number
+          left_at_period_index: number | null
+          share_type: string
+          share_value_minor: number | null
+        }
+        Insert: {
+          cost_plan_id: string
+          counterparty_id: string
+          created_at?: string
+          id?: string
+          joined_at_period_index: number
+          left_at_period_index?: number | null
+          share_type: string
+          share_value_minor?: number | null
+        }
+        Update: {
+          cost_plan_id?: string
+          counterparty_id?: string
+          created_at?: string
+          id?: string
+          joined_at_period_index?: number
+          left_at_period_index?: number | null
+          share_type?: string
+          share_value_minor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_plan_participants_cost_plan_id_fkey"
+            columns: ["cost_plan_id"]
+            isOneToOne: false
+            referencedRelation: "cost_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_plan_participants_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "counterparties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_plans: {
+        Row: {
+          amount_minor: number
+          anchor_date: string
+          archived_at: string | null
+          context_id: string | null
+          created_at: string
+          created_by: string
+          currency_code: string
+          group_id: string
+          id: string
+          interval_days: number | null
+          interval_kind: string
+          name: string
+          prepaid: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_minor: number
+          anchor_date: string
+          archived_at?: string | null
+          context_id?: string | null
+          created_at?: string
+          created_by: string
+          currency_code: string
+          group_id: string
+          id?: string
+          interval_days?: number | null
+          interval_kind: string
+          name: string
+          prepaid?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_minor?: number
+          anchor_date?: string
+          archived_at?: string | null
+          context_id?: string | null
+          created_at?: string
+          created_by?: string
+          currency_code?: string
+          group_id?: string
+          id?: string
+          interval_days?: number | null
+          interval_kind?: string
+          name?: string
+          prepaid?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_plans_context_belongs_to_group"
+            columns: ["context_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "group_contexts"
+            referencedColumns: ["id", "group_id"]
+          },
+          {
+            foreignKeyName: "cost_plans_context_id_fkey"
+            columns: ["context_id"]
+            isOneToOne: false
+            referencedRelation: "group_contexts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_plans_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       counterparties: {
         Row: {
           archived_at: string | null
@@ -1003,6 +1134,10 @@ export type Database = {
       }
       is_context_group_member: {
         Args: { target_context_id: string }
+        Returns: boolean
+      }
+      is_cost_plan_group_member: {
+        Args: { target_plan_id: string }
         Returns: boolean
       }
       is_counterparty_owner: {

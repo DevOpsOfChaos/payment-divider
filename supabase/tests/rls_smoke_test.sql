@@ -456,21 +456,18 @@ begin
 end;
 $$;
 
--- A dispute/rejection never deletes: the counterparty cannot delete a claim
--- (no DELETE privilege is granted on claims at all, let alone a policy).
+-- A dispute/rejection never deletes: the counterparty cannot delete a claim.
+-- No DELETE RLS policy exists (intentionally deferred), so RLS default-deny
+-- blocks all DELETE operations on claims, returning 0 rows.
 select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
-do $$
-begin
-  begin
-    delete from public.claims
-    where id = '00000000-0000-0000-0000-0000000000a3';
-    raise exception 'FAIL: counterparty could delete a claim';
-  exception
-    when insufficient_privilege then
-      raise notice 'PASS: counterparty cannot delete a claim';
-  end;
-end;
-$$;
+with deleted as (
+  delete from public.claims
+  where id = '00000000-0000-0000-0000-0000000000a3'
+  returning 1
+)
+select pg_temp.assert(
+  (select count(*) from deleted) = 0,
+  'counterparty B cannot delete a claim (RLS default deny, no DELETE policy)');
 reset role;
 
 -- ------------------------------------ 8. claim write paths (adapter, #105) ---
@@ -725,6 +722,106 @@ with updated as (
 select pg_temp.assert(
   (select count(*) from updated) = 0,
   'non-creator A cannot soft-delete B''s expense');
+reset role;
+
+-- ---------------------------------- 10. cost_plans and cost_plan_participants ---
+-- Uses Group AB (A + B members; C is outsider).
+-- A creates a counterparty for B so participant inserts work.
+
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000a');
+
+insert into public.counterparties (id, owner_user_id, kind, display_name, normalized_name, linked_user_id)
+values
+  ('00000000-0000-0000-0000-000000000ca1',
+   '00000000-0000-0000-0000-00000000000a', 'app_user', 'User B', 'user b',
+   '00000000-0000-0000-0000-00000000000b');
+
+-- Active group member A may create a cost plan for Group AB.
+insert into public.cost_plans (
+  id, group_id, created_by, name,
+  amount_minor, currency_code, interval_kind, anchor_date
+)
+values (
+  '00000000-0000-0000-0000-000000000ca2',
+  '00000000-0000-0000-0000-0000000000a1',
+  '00000000-0000-0000-0000-00000000000a',
+  'Streaming',
+  1299, 'EUR', 'monthly', '2026-01-01'
+);
+
+select pg_temp.assert(
+  exists (select 1 from public.cost_plans where id = '00000000-0000-0000-0000-000000000ca2'),
+  'creator A may insert a cost plan into their group');
+
+-- A may add B as participant via their counterparty record.
+insert into public.cost_plan_participants (
+  id, cost_plan_id, counterparty_id,
+  share_type, joined_at_period_index
+)
+values (
+  '00000000-0000-0000-0000-000000000ca3',
+  '00000000-0000-0000-0000-000000000ca2',
+  '00000000-0000-0000-0000-000000000ca1',
+  'equal', 0
+);
+
+select pg_temp.assert(
+  exists (select 1 from public.cost_plan_participants
+          where id = '00000000-0000-0000-0000-000000000ca3'),
+  'A may add participant B to their cost plan');
+
+reset role;
+
+-- Fellow group member B can read the plan and participant.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
+
+select pg_temp.assert(
+  exists (select 1 from public.cost_plans
+          where id = '00000000-0000-0000-0000-000000000ca2'),
+  'group member B can read A''s cost plan');
+
+select pg_temp.assert(
+  exists (select 1 from public.cost_plan_participants
+          where id = '00000000-0000-0000-0000-000000000ca3'),
+  'group member B can read cost plan participants');
+
+reset role;
+
+-- Outsider C sees neither plans nor participants.
+select pg_temp.impersonate('00000000-0000-0000-0000-00000000000c');
+
+select pg_temp.assert(
+  not exists (select 1 from public.cost_plans
+              where id = '00000000-0000-0000-0000-000000000ca2'),
+  'outsider C cannot read Group AB cost plans');
+
+select pg_temp.assert(
+  not exists (select 1 from public.cost_plan_participants
+              where id = '00000000-0000-0000-0000-000000000ca3'),
+  'outsider C cannot read Group AB cost plan participants');
+
+-- Outsider C cannot insert a plan into Group AB.
+do $$
+begin
+  begin
+    insert into public.cost_plans (
+      group_id, created_by, name,
+      amount_minor, currency_code, interval_kind, anchor_date
+    )
+    values (
+      '00000000-0000-0000-0000-0000000000a1',
+      '00000000-0000-0000-0000-00000000000c',
+      'Intruder plan',
+      999, 'EUR', 'monthly', '2026-01-01'
+    );
+    raise exception 'FAIL: outsider C could insert a cost plan into Group AB';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: outsider C cannot insert a cost plan (42501)';
+  end;
+end;
+$$;
+
 reset role;
 
 rollback;
