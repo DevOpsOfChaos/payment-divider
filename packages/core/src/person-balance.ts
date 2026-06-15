@@ -21,6 +21,14 @@ import {
   type ClaimStatus,
 } from "./claims";
 import type { Counterparty } from "./counterparties";
+import {
+  getActiveParticipants,
+  splitPeriodShares,
+  type CostPlan,
+  type CostPlanParticipant,
+  type CostPlanPeriod,
+  type CostPlanSettlement,
+} from "./cost-plans";
 
 // "recurring_cost" is reserved for shared subscriptions
 // (docs/product/shared-subscriptions-v0.1.md); no producer exists yet.
@@ -240,4 +248,57 @@ export function buildPersonBalanceOverview(
       left.currency.localeCompare(right.currency) ||
       left.counterpartyName.localeCompare(right.counterpartyName),
   );
+}
+
+// Produces one gross PersonBalancePosition per active participant per
+// non-skipped period. Confirmed settlements reduce the open amount; the
+// position closes when the remaining share reaches zero or the period is
+// marked settled. Closed positions keep the original share amount for
+// history. Skipped periods produce no positions.
+export function costPlanPeriodsToPersonPositions(
+  plan: CostPlan,
+  periods: CostPlanPeriod[],
+  allParticipants: CostPlanParticipant[],
+  settlements: CostPlanSettlement[],
+): PersonBalancePosition[] {
+  const positions: PersonBalancePosition[] = [];
+
+  for (const period of periods) {
+    if (period.status === "skipped") continue;
+
+    const activeParticipants = getActiveParticipants(allParticipants, period.periodIndex);
+    if (activeParticipants.length === 0) continue;
+
+    const shares = splitPeriodShares(period.amount, activeParticipants);
+
+    for (const share of shares) {
+      if (share.counterpartyId === undefined) continue;
+
+      const confirmedTotal = settlements
+        .filter(
+          (s) =>
+            s.costPlanPeriodId === period.id &&
+            s.counterpartyId === share.counterpartyId &&
+            s.confirmationStatus === "confirmed",
+        )
+        .reduce((sum, s) => sum + s.amount, 0);
+
+      const remaining = share.amount - confirmedTotal;
+      const closed = period.status === "settled" || remaining <= 0;
+
+      positions.push({
+        sourceType: "recurring_cost",
+        sourceId: period.id,
+        counterpartyId: share.counterpartyId,
+        direction: "owed_to_me",
+        amount: closed ? share.amount : remaining,
+        currency: plan.currency,
+        label: plan.name,
+        closed,
+        closedStatus: closed ? "settled" : undefined,
+      });
+    }
+  }
+
+  return positions;
 }

@@ -7,9 +7,16 @@ import type { Expense, ExpenseShare, PaymentAction } from "./domain-types";
 import {
   buildPersonBalanceOverview,
   claimsToPersonPositions,
+  costPlanPeriodsToPersonPositions,
   groupBalancesToPersonPositions,
   type PersonBalancePosition,
 } from "./person-balance";
+import type {
+  CostPlan,
+  CostPlanParticipant,
+  CostPlanPeriod,
+  CostPlanSettlement,
+} from "./cost-plans";
 
 const NOW = "2026-06-11T12:00:00.000Z";
 
@@ -326,4 +333,192 @@ test("non-integer position amounts are rejected", () => {
       counterparties: COUNTERPARTIES,
     }),
   );
+});
+
+// --- costPlanPeriodsToPersonPositions ---
+
+const NOW_PLAN = "2026-06-11T12:00:00.000Z";
+
+function makeCostPlan(overrides: Partial<CostPlan> = {}): CostPlan {
+  return {
+    id: "plan-1",
+    ownerUserId: "user-me",
+    name: "Streaming Familienabo",
+    amount: 1799,
+    currency: "EUR",
+    intervalKind: "monthly",
+    anchorDate: "2026-01-15",
+    prepaid: false,
+    createdAt: NOW_PLAN,
+    updatedAt: NOW_PLAN,
+    ...overrides,
+  };
+}
+
+function makePeriod(overrides: Partial<CostPlanPeriod> & Pick<CostPlanPeriod, "id" | "periodIndex">): CostPlanPeriod {
+  return {
+    costPlanId: "plan-1",
+    periodStart: "2026-01-15",
+    periodEnd: "2026-02-15",
+    amount: 1799,
+    status: "expected",
+    createdAt: NOW_PLAN,
+    ...overrides,
+  };
+}
+
+function makePlanParticipant(
+  overrides: Partial<CostPlanParticipant> & Pick<CostPlanParticipant, "id">,
+): CostPlanParticipant {
+  return {
+    costPlanId: "plan-1",
+    counterpartyId: LINKED_ANNA.id,
+    shareType: "equal",
+    joinedAtPeriodIndex: 0,
+    createdAt: NOW_PLAN,
+    ...overrides,
+  };
+}
+
+function makeSettlement(
+  overrides: Partial<CostPlanSettlement> & Pick<CostPlanSettlement, "id" | "amount">,
+): CostPlanSettlement {
+  return {
+    costPlanId: "plan-1",
+    costPlanPeriodId: "period-1",
+    counterpartyId: LINKED_ANNA.id,
+    settledDate: "2026-02-01",
+    confirmationStatus: "confirmed",
+    createdAt: NOW_PLAN,
+    ...overrides,
+  };
+}
+
+test("open period produces a recurring_cost position per participant", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0 });
+  // Anna + owner: 1799 / 2 = 899 remainder 1. Anna (cp-anna sorts first): 900. Owner: 899.
+  const anna = makePlanParticipant({ id: "pp-1" });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], []);
+
+  assert.equal(positions.length, 1);
+  assert.equal(positions[0].sourceType, "recurring_cost");
+  assert.equal(positions[0].counterpartyId, LINKED_ANNA.id);
+  assert.equal(positions[0].direction, "owed_to_me");
+  assert.equal(positions[0].closed, false);
+  assert.equal(positions[0].label, "Streaming Familienabo");
+  assert.equal(positions[0].currency, "EUR");
+});
+
+test("confirmed settlement reduces open position amount", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0, amount: 1000 });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  // Anna's share: 500 (equal, 2 heads). Settlement: 200 confirmed.
+  const settlement = makeSettlement({ id: "s1", amount: 200 });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], [settlement]);
+
+  assert.equal(positions[0].amount, 300);
+  assert.equal(positions[0].closed, false);
+});
+
+test("position closes when confirmed settlements cover the full share", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0, amount: 1000 });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  // Anna's share: 500. Settlement: 500.
+  const settlement = makeSettlement({ id: "s1", amount: 500 });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], [settlement]);
+
+  assert.equal(positions[0].closed, true);
+  assert.equal(positions[0].amount, 500); // history keeps original share
+  assert.equal(positions[0].closedStatus, "settled");
+});
+
+test("period marked settled produces closed positions regardless of settlement records", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0, status: "settled" });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], []);
+
+  assert.equal(positions[0].closed, true);
+  assert.equal(positions[0].closedStatus, "settled");
+});
+
+test("skipped period produces no positions", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0, status: "skipped" });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], []);
+
+  assert.equal(positions.length, 0);
+});
+
+test("unconfirmed and pending settlements do not reduce open amount", () => {
+  const plan = makeCostPlan();
+  const period = makePeriod({ id: "period-1", periodIndex: 0, amount: 1000 });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  const recorded = makeSettlement({ id: "s1", amount: 300, confirmationStatus: "recorded" });
+  const pending = makeSettlement({ id: "s2", amount: 200, confirmationStatus: "pending_confirmation" });
+  const rejected = makeSettlement({ id: "s3", amount: 100, confirmationStatus: "rejected" });
+  const positions = costPlanPeriodsToPersonPositions(plan, [period], [anna], [
+    recorded, pending, rejected,
+  ]);
+
+  // Anna's share 500 (equal, 2 heads). No confirmed settlements → full amount open.
+  assert.equal(positions[0].amount, 500);
+  assert.equal(positions[0].closed, false);
+});
+
+test("prepaid yearly plan: part-settlement leaves position open, full settlement closes it", () => {
+  // One yearly period (prepaid). Anna's share of 1200 in a 2400-amount plan
+  // (2 heads: Anna + owner = 1200 each).
+  const plan = makeCostPlan({
+    intervalKind: "yearly",
+    amount: 2400,
+    prepaid: true,
+  });
+  const period = makePeriod({ id: "period-y1", periodIndex: 0, amount: 2400 });
+  const anna = makePlanParticipant({ id: "pp-1" });
+
+  // Part-settlement: 700 confirmed.
+  const partial = makeSettlement({
+    id: "s1",
+    costPlanPeriodId: "period-y1",
+    amount: 700,
+  });
+  const openPositions = costPlanPeriodsToPersonPositions(plan, [period], [anna], [partial]);
+  assert.equal(openPositions[0].closed, false);
+  assert.equal(openPositions[0].amount, 500); // 1200 - 700
+
+  // Full settlement: add the remaining 500.
+  const fullSettlement = makeSettlement({
+    id: "s2",
+    costPlanPeriodId: "period-y1",
+    amount: 500,
+  });
+  const closedPositions = costPlanPeriodsToPersonPositions(plan, [period], [anna], [
+    partial,
+    fullSettlement,
+  ]);
+  assert.equal(closedPositions[0].closed, true);
+  assert.equal(closedPositions[0].amount, 1200); // history: original share
+});
+
+test("recurring cost positions feed into buildPersonBalanceOverview alongside claims", () => {
+  const plan = makeCostPlan({ name: "Netflix" });
+  const period = makePeriod({ id: "period-1", periodIndex: 0, amount: 1000 });
+  const anna = makePlanParticipant({ id: "pp-1" });
+  const costPositions = costPlanPeriodsToPersonPositions(plan, [period], [anna], []);
+
+  const claims = [makeClaim({ id: "c1", counterpartyId: LINKED_ANNA.id, amount: 2000 })];
+  const claimPositions = claimsToPersonPositions(claims, [], COUNTERPARTIES);
+
+  const overview = overviewFor([...claimPositions, ...costPositions]);
+
+  assert.equal(overview.length, 1);
+  assert.equal(overview[0].counterpartyId, LINKED_ANNA.id);
+  // Anna's share: 1000 / 2 = 500. Claim: 2000. Net = 2500.
+  assert.equal(overview[0].openOwedToMe, 2500);
+  assert.equal(overview[0].openPositions.length, 2);
 });

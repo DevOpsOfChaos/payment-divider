@@ -198,3 +198,95 @@ export function getActiveParticipants(
   }
   return active;
 }
+
+export type CostPlanSettlementConfirmationStatus =
+  | "recorded"
+  | "pending_confirmation"
+  | "confirmed"
+  | "rejected";
+
+// Ledger-only settlement against one participant's share in one period.
+// Mirrors ClaimPayment semantics: only confirmed settlements reduce the open
+// position. No auto-debit, no payment provider, no banking data.
+export interface CostPlanSettlement {
+  id: EntityId;
+  costPlanId: EntityId;
+  costPlanPeriodId: EntityId;
+  counterpartyId: EntityId;
+  amount: number;
+  settledDate: ISODateString;
+  confirmationStatus: CostPlanSettlementConfirmationStatus;
+  createdAt: ISODateTimeString;
+}
+
+// Per-head share for one period. counterpartyId undefined = owner's implicit
+// remainder (period.amount − sum of participant shares).
+export interface CostPlanShareEntry {
+  counterpartyId: EntityId | undefined;
+  amount: number;
+}
+
+// Splits a period's amount among the active participants and the implicit
+// owner head. For equal splits the owner counts as one head (N+1 total);
+// remainder cents go to the lowest sorted counterparty IDs. For fixed splits
+// each participant claims their shareValue and the owner gets the remainder.
+// Mixed equal/fixed within a single period is not supported.
+export function splitPeriodShares(
+  periodAmount: number,
+  activeParticipants: CostPlanParticipant[],
+): CostPlanShareEntry[] {
+  if (!Number.isInteger(periodAmount) || periodAmount < 0) {
+    throw new Error("periodAmount must be a non-negative integer.");
+  }
+  if (activeParticipants.length === 0) {
+    return [{ counterpartyId: undefined, amount: periodAmount }];
+  }
+
+  const shareTypes = new Set(activeParticipants.map((p) => p.shareType));
+  if (shareTypes.size > 1) {
+    throw new Error(
+      "Mixed equal/fixed share types within the same period are not supported.",
+    );
+  }
+
+  if (activeParticipants[0].shareType === "fixed") {
+    let totalFixed = 0;
+    for (const p of activeParticipants) {
+      if (p.shareValue === undefined) {
+        throw new Error(`Participant ${p.id} has shareType "fixed" but no shareValue.`);
+      }
+      if (!Number.isInteger(p.shareValue) || p.shareValue < 0) {
+        throw new Error(
+          `shareValue of participant ${p.id} must be a non-negative integer.`,
+        );
+      }
+      totalFixed += p.shareValue;
+    }
+    if (totalFixed > periodAmount) {
+      throw new Error(
+        `Sum of fixed shares (${totalFixed}) exceeds period amount (${periodAmount}).`,
+      );
+    }
+    return [
+      ...activeParticipants.map((p) => ({
+        counterpartyId: p.counterpartyId,
+        amount: p.shareValue as number,
+      })),
+      { counterpartyId: undefined, amount: periodAmount - totalFixed },
+    ];
+  }
+
+  // Equal: N participants + 1 owner = N+1 heads.
+  const headCount = activeParticipants.length + 1;
+  const base = Math.floor(periodAmount / headCount);
+  const remainder = periodAmount % headCount;
+  const sorted = [...activeParticipants].sort((a, b) =>
+    a.counterpartyId.localeCompare(b.counterpartyId),
+  );
+  const entries: CostPlanShareEntry[] = sorted.map((p, i) => ({
+    counterpartyId: p.counterpartyId,
+    amount: base + (i < remainder ? 1 : 0),
+  }));
+  const ownerAmount = periodAmount - entries.reduce((sum, e) => sum + e.amount, 0);
+  return [...entries, { counterpartyId: undefined, amount: ownerAmount }];
+}
