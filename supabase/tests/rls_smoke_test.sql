@@ -457,17 +457,21 @@ end;
 $$;
 
 -- A dispute/rejection never deletes: the counterparty cannot delete a claim.
--- No DELETE RLS policy exists (intentionally deferred), so RLS default-deny
--- blocks all DELETE operations on claims, returning 0 rows.
+-- DELETE privilege is explicitly revoked from authenticated (#163), so any
+-- DELETE attempt raises insufficient_privilege regardless of RLS.
 select pg_temp.impersonate('00000000-0000-0000-0000-00000000000b');
-with deleted as (
-  delete from public.claims
-  where id = '00000000-0000-0000-0000-0000000000a3'
-  returning 1
-)
-select pg_temp.assert(
-  (select count(*) from deleted) = 0,
-  'counterparty B cannot delete a claim (RLS default deny, no DELETE policy)');
+do $$
+begin
+  begin
+    delete from public.claims
+    where id = '00000000-0000-0000-0000-0000000000a3';
+    raise exception 'FAIL: counterparty could delete a claim';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASS: counterparty cannot delete a claim (no DELETE privilege)';
+  end;
+end;
+$$;
 reset role;
 
 -- ------------------------------------ 8. claim write paths (adapter, #105) ---
